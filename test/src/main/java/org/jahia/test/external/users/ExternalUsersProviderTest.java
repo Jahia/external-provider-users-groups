@@ -45,6 +45,7 @@ package org.jahia.test.external.users;
 
 import com.google.common.collect.Sets;
 
+import org.apache.commons.lang.StringUtils;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.decorator.JCRGroupNode;
 import org.jahia.services.content.decorator.JCRUserNode;
@@ -62,6 +63,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -167,4 +169,29 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
         }
         assertTrue("Setting a read-only property shouldn't be possible", threwException);
     }
+
+    @Test
+    public void accesToUserNodeViaRestApi() throws Exception {
+        login("tata", "password");
+        try {
+            JCRUserNode tata = jahiaUserManagerService.lookupUser("tata");
+            checkAccess("/modules/api/jcr/v1/live/en/paths" + tata.getPath());
+            checkAccess("/modules/api/jcr/v1/default/en/paths" + tata.getPath());
+
+            checkAccess("/modules/api/jcr/v1/live/en/nodes/" + tata.getIdentifier());
+            checkAccess("/modules/api/jcr/v1/default/en/nodes/" + tata.getIdentifier());
+
+            checkAccess("/modules/api/jcr/v1/live/en/nodes/" + tata.getIdentifier() + "/properties");
+            checkAccess("/modules/api/jcr/v1/default/en/nodes/" + tata.getIdentifier() + "/properties");
+        } finally {
+            logout();
+        }
+    }
+
+    private void checkAccess(String url) {
+        String out = getAsText(url);
+        assertFalse("Should have access to the URL: " + url,
+                StringUtils.contains(out, "\"exception\":\"javax.jcr.PathNotFoundException\""));
+    }
+
 }
