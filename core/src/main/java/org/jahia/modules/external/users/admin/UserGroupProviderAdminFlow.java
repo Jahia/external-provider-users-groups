@@ -232,6 +232,8 @@ public class UserGroupProviderAdminFlow implements Serializable {
         if (isUnavailable) {
             messages.addMessage(new MessageBuilder().error().code("label.userGroupProvider.resumeError").arg(msg).build());
         }
+
+        addNoteForCluster(messages);
     }
 
     @Autowired
@@ -259,6 +261,7 @@ public class UserGroupProviderAdminFlow implements Serializable {
         if (groupProvider != null) {
             groupProvider.stop();
         }
+        addNoteForCluster(messages);
     }
 
     private void wait(String providerKey, boolean shouldBeAvailable, MessageContext messages) {
@@ -306,4 +309,11 @@ public class UserGroupProviderAdminFlow implements Serializable {
         }
     }
 
+    private void addNoteForCluster(MessageContext messages) {
+        if (!SettingsBean.getInstance().isClusterActivated()) {
+            return;
+        }
+
+        messages.addMessage(new MessageBuilder().info().code("label.userGroupProvider.clusterNote").build());
+    }
 }
