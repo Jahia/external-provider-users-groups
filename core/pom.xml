@@ -59,7 +59,7 @@
     <connection>scm:git:git@github.com:Jahia/external-provider-users-groups.git</connection>
     <developerConnection>scm:git:git@github.com:Jahia/external-provider-users-groups.git</developerConnection>
     <url>scm:git:git@github.com:Jahia/external-provider-users-groups</url>
-    <tag>HEAD</tag>
+    <tag>1_1_x</tag>
   </scm>
     <properties>
         <jahia-module-type>system</jahia-module-type>
