@@ -39,11 +39,11 @@
 
             <jsp:include page="${editJSP}"/>
 
-            <div>
-                <button class="btn btn-sm btn-primary" type="submit" name="_eventId_save">
+            <div class="form-group form-group-sm">
+                <button class="btn btn-primary btn-raised pull-right" type="submit" name="_eventId_save">
                     <fmt:message key="label.save"/>
                 </button>
-                <button class="btn btn-sm btn-danger" type="button" onclick="$('#cancelForm${currentNode.identifier}').submit()">
+                <button class="btn btn-default pull-right" type="button" onclick="$('#cancelForm${currentNode.identifier}').submit()">
                     <fmt:message key="label.cancel"/>
                 </button>
             </div>

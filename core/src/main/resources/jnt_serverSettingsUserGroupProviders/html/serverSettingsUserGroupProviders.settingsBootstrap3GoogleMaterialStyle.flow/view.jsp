@@ -44,11 +44,9 @@
 </c:forEach>
 <div class="panel panel-default">
     <div class="panel-body">
-        <table id="providersTable" class="table table-bordered table-striped table-hover">
+        <table id="providersTable" class="table table-bordered table-striped">
             <thead>
             <tr>
-                <%--<th class="{sorter: false}">&nbsp;</th>--%>
-                <%--<th>#</th>--%>
                 <th>
                     <fmt:message key="label.key"/>
                 </th>
@@ -75,14 +73,13 @@
             <c:forEach items="${userGroupProviders}" var="userGroupProvider" varStatus="loopStatus">
                 <tr>
                     <td>
-                            ${userGroupProvider.key}
+                        ${userGroupProvider.key}
                     </td>
                     <td>
-                            ${userGroupProvider.providerClass}
+                        ${userGroupProvider.providerClass}
                     </td>
                     <td>
-                            ${userGroupProvider.groupSupported}
-
+                        ${userGroupProvider.groupSupported}
                     </td>
                     <td>
                         <c:choose>
@@ -127,28 +124,38 @@
 
                             <c:choose>
                                 <c:when test="${userGroupProvider.running}">
-                                    <button data-toggle="tooltip" data-placement="bottom" title="" data-original-title="<fmt:message key="label.userGroupProvider.suspend"/>"
-                                            class="btn btn-default btn-sm btn-primary" type="submit" name="_eventId_suspendProvider">
+                                    <button data-toggle="tooltip" data-placement="bottom" title=""
+                                            data-original-title="<fmt:message key="label.userGroupProvider.suspend"/>"
+                                            class="btn btn-warning btn-fab btn-fab-xs" type="submit"
+                                            name="_eventId_suspendProvider">
                                         <i class="material-icons">pause</i>
                                     </button>
                                 </c:when>
                                 <c:otherwise>
-                                    <button  data-placement="bottom" title="" data-original-title="<fmt:message key="label.userGroupProvider.resume"/>" data-toggle="tooltip"
-                                            class="btn btn-default btn-sm btn-primary" type="submit" name="_eventId_resumeProvider">
+                                    <button data-placement="bottom" title=""
+                                            data-original-title="<fmt:message key="label.userGroupProvider.resume"/>"
+                                            data-toggle="tooltip"
+                                            class="btn btn-success btn-fab btn-fab-xs" type="submit"
+                                            name="_eventId_resumeProvider">
                                         <i class="material-icons">play_arrow</i>
                                     </button>
                                 </c:otherwise>
                             </c:choose>
 
                             <c:if test="${userGroupProvider.editSupported}">
-                                <button  data-placement="bottom" title="" data-original-title="<fmt:message key="label.edit"/>" class="btn btn-default btn-sm btn-primary"
+                                <button data-placement="bottom" title=""
+                                        data-original-title="<fmt:message key="label.edit"/>"
+                                        class="btn btn-default btn-fab btn-fab-xs"
                                         type="submit" name="_eventId_editProvider" data-toggle="tooltip">
-                                        <i class="material-icons">edit</i>
+                                    <i class="material-icons">edit</i>
                                 </button>
                             </c:if>
 
                             <c:if test="${userGroupProvider.deleteSupported}">
-                                <button  data-placement="bottom" title="" data-original-title="<fmt:message key="label.delete"/>" class="btn btn-danger" type="submit"
+                                <button data-placement="bottom" title=""
+                                        data-original-title="<fmt:message key="label.delete"/>"
+                                        class="btn btn-danger btn-fab btn-fab-xs"
+                                        type="submit"
                                         name="_eventId_deleteProvider" data-toggle="tooltip">
                                     <i class="material-icons">delete</i>
                                 </button>
@@ -167,10 +174,10 @@
                     <input type="hidden" name="providerName" value="${createConfiguration.value.name}"/>
                     <input type="hidden" name="createJSP" value="${createConfiguration.value.createJSP}"/>
 
-                    <button class="btn btn-default btn-primary" type="submit" name="_eventId_createProvider">
+                    <button class="btn btn-raised btn-primary pull-right" type="submit" name="_eventId_createProvider">
                         <fmt:message key="label.userGroupProvider.create">
-                        <fmt:param value="${createConfiguration.value.name}"/>
-                    </fmt:message>
+                            <fmt:param value="${createConfiguration.value.name}"/>
+                        </fmt:message>
                     </button>
                 </form>
             </c:forEach>

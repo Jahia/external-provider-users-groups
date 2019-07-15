@@ -31,21 +31,25 @@
 </c:if>
 
 <div class="panel panel-default">
+    <div class="panel-heading">
+        <h4>
+            <fmt:message key="label.userGroupProvider.delete">
+                <fmt:param value="${providerKey}"/>
+            </fmt:message>
+        </h4>
+    </div>
     <div class="panel-body">
-        <h3><fmt:message key="label.userGroupProvider.delete">
-            <fmt:param value="${providerKey}"/>
-        </fmt:message></h3>
-        <div class="alert alert-danger"><fmt:message key="label.userGroupProvider.delete.confirm"/></div>
+        <p class="text-danger"><fmt:message key="label.userGroupProvider.delete.confirm"/></p>
 
         <form style="margin: 0;" action="${flowExecutionUrl}" method="post" onsubmit="workInProgress('${i18nWaiting}')">
             <input type="hidden" name="providerKey" value="${providerKey}"/>
             <input type="hidden" name="providerClass" value="${providerClass}"/>
 
-            <div>
-                <button class="btn btn-primary" type="submit" name="_eventId_delete">
+            <div class="form-group form-group-sm">
+                <button class="btn btn-danger btn-raised pull-right" type="submit" name="_eventId_delete">
                     <fmt:message key="label.delete"/>
                 </button>
-                <button class="btn btn-danger" type="submit" name="_eventId_cancel">
+                <button class="btn btn-default pull-right" type="submit" name="_eventId_cancel">
                     <fmt:message key="label.cancel"/>
                 </button>
             </div>
