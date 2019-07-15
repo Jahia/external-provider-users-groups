@@ -30,6 +30,7 @@
 <c:if test="${not empty error}">
     <div class="alert alert-danger">${error}</div>
 </c:if>
+
 <div class="panel panel-default">
     <div class="panel-body">
         <form style="margin: 0;" action="${flowExecutionUrl}" method="post" onsubmit="workInProgress('${i18nWaiting}')">
@@ -38,11 +39,11 @@
 
             <jsp:include page="${createJSP}"/>
 
-            <div>
-                <button class="btn btn-primary" type="submit" name="_eventId_create">
+            <div class="form-group form-group-sm">
+                <button class="btn btn-primary btn-raised pull-right" type="submit" name="_eventId_create">
                     <fmt:message key="label.save"/>
                 </button>
-                <button class="btn btn-danger" type="button" onclick="$('#cancelForm${currentNode.identifier}').submit()">
+                <button class="btn btn-danger pull-right" type="button" onclick="$('#cancelForm${currentNode.identifier}').submit()">
                     <fmt:message key="label.cancel"/>
                 </button>
             </div>
