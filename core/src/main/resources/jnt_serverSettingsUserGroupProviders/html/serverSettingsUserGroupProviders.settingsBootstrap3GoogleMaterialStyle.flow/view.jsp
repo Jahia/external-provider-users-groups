@@ -36,12 +36,13 @@
     <h2><fmt:message key="serverSettings.manageUserGroupProviders"/></h2>
 </div>
 
-
 <c:forEach var="msg" items="${flowRequestContext.messageContext.allMessages}">
     <div class="${msg.severity == 'ERROR' ? 'validationError' : ''} alert ${msg.severity == 'ERROR' ? 'alert-danger' : 'alert-success'}">
         <button type="button" class="close" data-dismiss="alert">&times;</button>
-            ${fn:escapeXml(msg.text)}</div>
+            ${fn:escapeXml(msg.text)}
+    </div>
 </c:forEach>
+
 <div class="panel panel-default">
     <div class="panel-body">
         <table id="providersTable" class="table table-bordered table-striped">
