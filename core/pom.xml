@@ -66,6 +66,7 @@
         <jahia-depends>default,external-provider,serverSettings</jahia-depends>
         <jahia-deploy-on-site>system</jahia-deploy-on-site>
         <export-package>org.jahia.modules.external.users</export-package>
+        <jahia-module-signature>MCwCFBNWDe2Or5cup2+8QFknuYQr3mETAhQugf2agCL1cmLIJxlqUNrY98xJSw==</jahia-module-signature>
     </properties>
   <dependencies>
     <dependency>

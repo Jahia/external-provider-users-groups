@@ -66,6 +66,7 @@
 
     <properties>
         <jahia-depends>default, external-provider-users-groups</jahia-depends>
+        <jahia-module-signature>MCwCFE9Be6VPWC0vbwY/9U7/81HX70Y6AhQBal4EM6OsOetOhKQZ4FdVJM4NdA==</jahia-module-signature>
     </properties>
 
     <dependencies>
