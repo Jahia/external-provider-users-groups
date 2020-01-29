@@ -49,7 +49,7 @@
   <parent>
     <groupId>org.jahia.modules</groupId>
     <artifactId>external-provider-users-groups-parent</artifactId>
-    <version>1.3.0-SNAPSHOT</version>
+    <version>2.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>external-provider-users-groups</artifactId>
   <packaging>bundle</packaging>
@@ -66,7 +66,7 @@
         <jahia-depends>default,external-provider,serverSettings</jahia-depends>
         <jahia-deploy-on-site>system</jahia-deploy-on-site>
         <export-package>org.jahia.modules.external.users</export-package>
-        <jahia-module-signature>MCwCFBNWDe2Or5cup2+8QFknuYQr3mETAhQugf2agCL1cmLIJxlqUNrY98xJSw==</jahia-module-signature>
+        <jahia-module-signature>MCwCFDnLTyf2+QdUuCBcx9PLu/VIHEZwAhR5UAg83/faLNh0hu+YAs3ku40IEA==</jahia-module-signature>
     </properties>
   <dependencies>
     <dependency>
