@@ -66,11 +66,12 @@
     </scm>
     <properties>
         <jahia-module-type>system</jahia-module-type>
-        <jahia-depends>default,external-provider,serverSettings</jahia-depends>
+        <jahia-depends>dx-commons-webpack,jahia-ui-root,default,external-provider,serverSettings</jahia-depends>
         <jahia-deploy-on-site>system</jahia-deploy-on-site>
         <jahia.modules.importPackage>org.jahia.defaults.config.spring,org.jahia.modules.external</jahia.modules.importPackage>
         <export-package>org.jahia.modules.external.users</export-package>
         <jahia-module-signature>MCwCFDnLTyf2+QdUuCBcx9PLu/VIHEZwAhR5UAg83/faLNh0hu+YAs3ku40IEA==</jahia-module-signature>
+      <yarn.arguments>build:production</yarn.arguments>
     </properties>
     <dependencies>
         <dependency>
@@ -80,25 +81,131 @@
             <scope>provided</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.eclipse.gemini.blueprint</groupId>
-            <artifactId>gemini-blueprint-core</artifactId>
-            <version>${gemini.blueprint.version}</version>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
-    <repositories>
-        <repository>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>jahia-public</id>
-            <name>Jahia Public Repository</name>
-            <url>https://devtools.jahia.com/nexus/content/groups/public</url>
-        </repository>
-    </repositories>
+    <dependency>
+      <groupId>org.eclipse.gemini.blueprint</groupId>
+      <artifactId>gemini-blueprint-core</artifactId>
+      <version>${gemini.blueprint.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jahia.modules</groupId>
+      <artifactId>dx-commons-webpack</artifactId>
+      <version>1.4.0-SNAPSHOT</version>
+      <type>json</type>
+      <classifier>manifest</classifier>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jahia.modules</groupId>
+      <artifactId>dx-commons-webpack</artifactId>
+      <version>1.4.0-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+  <repositories>
+    <repository>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>never</updatePolicy>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <id>jahia-public</id>
+      <name>Jahia Public Repository</name>
+      <url>https://devtools.jahia.com/nexus/content/groups/public</url>
+    </repository>
+  </repositories>
+
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+    </resources>
+    <plugins>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>3.1.0</version>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>src/main/resources/javascript/apps</directory>
+              <includes>
+                <include>*</include>
+              </includes>
+            </fileset>
+          </filesets>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <version>1.8.0</version>
+        <executions>
+          <execution>
+            <id>npm install node and yarn</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>install-node-and-yarn</goal>
+            </goals>
+            <configuration>
+              <nodeVersion>v13.2.0</nodeVersion>
+              <yarnVersion>v1.19.1</yarnVersion>
+            </configuration>
+          </execution>
+          <execution>
+            <id>yarn install</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>yarn</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>yarn post-install</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>yarn</goal>
+            </goals>
+            <configuration>
+              <arguments>${yarn.arguments}</arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <extensions>true</extensions>
+        <configuration>
+          <instructions>
+            <JAX-RS-Alias>/external-provider/events</JAX-RS-Alias>
+            <JAX-RS-Application>org.jahia.modules.external.events.rest.EventResourceConfig</JAX-RS-Application>
+          </instructions>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <artifactItems>
+            <artifactItem>
+              <groupId>org.jahia.modules</groupId>
+              <artifactId>dx-commons-webpack</artifactId>
+              <type>json</type>
+              <classifier>manifest</classifier>
+            </artifactItem>
+          </artifactItems>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
