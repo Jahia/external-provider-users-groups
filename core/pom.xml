@@ -174,18 +174,6 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <extensions>true</extensions>
-        <configuration>
-          <instructions>
-            <JAX-RS-Alias>/external-provider/events</JAX-RS-Alias>
-            <JAX-RS-Application>org.jahia.modules.external.events.rest.EventResourceConfig</JAX-RS-Application>
-            <Import-Packages>org.jahia.modules.external.events.rest</Import-Packages>
-          </instructions>
-        </configuration>
-      </plugin>
-      <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
