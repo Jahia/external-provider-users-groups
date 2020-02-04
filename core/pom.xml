@@ -181,6 +181,7 @@
           <instructions>
             <JAX-RS-Alias>/external-provider/events</JAX-RS-Alias>
             <JAX-RS-Application>org.jahia.modules.external.events.rest.EventResourceConfig</JAX-RS-Application>
+            <Import-Packages>org.jahia.modules.external.events.rest</Import-Packages>
           </instructions>
         </configuration>
       </plugin>
