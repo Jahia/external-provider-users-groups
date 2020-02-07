@@ -66,7 +66,7 @@
     </scm>
     <properties>
         <jahia-module-type>system</jahia-module-type>
-        <jahia-depends>dx-commons-webpack,jahia-ui-root,default,external-provider,serverSettings</jahia-depends>
+        <jahia-depends>default,external-provider,serverSettings</jahia-depends>
         <jahia-deploy-on-site>system</jahia-deploy-on-site>
         <jahia.modules.importPackage>org.jahia.defaults.config.spring,org.jahia.modules.external</jahia.modules.importPackage>
         <export-package>org.jahia.modules.external.users</export-package>
