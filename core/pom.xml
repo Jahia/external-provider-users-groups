@@ -70,6 +70,7 @@
         <jahia-deploy-on-site>system</jahia-deploy-on-site>
         <jahia.modules.importPackage>org.jahia.defaults.config.spring,org.jahia.modules.external</jahia.modules.importPackage>
         <export-package>org.jahia.modules.external.users</export-package>
+        <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
         <jahia-module-signature>MCwCFDnLTyf2+QdUuCBcx9PLu/VIHEZwAhR5UAg83/faLNh0hu+YAs3ku40IEA==</jahia-module-signature>
       <yarn.arguments>build:production</yarn.arguments>
     </properties>
