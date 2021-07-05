@@ -323,6 +323,11 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
         login("tata", "password");
         try {
             JCRUserNode tata = jahiaUserManagerService.lookupUser("tata");
+
+            JCRGroupNode group = jahiaGroupManagerService.lookupGroup("systemsite", "site-administrators");
+            group.addMember(tata);
+            group.getSession().save();
+
             checkAccess("/modules/api/jcr/v1/live/en/paths" + tata.getPath());
             checkAccess("/modules/api/jcr/v1/default/en/paths" + tata.getPath());
 
