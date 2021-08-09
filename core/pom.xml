@@ -67,7 +67,7 @@
         <jahia-module-type>system</jahia-module-type>
         <jahia-depends>default,external-provider,serverSettings</jahia-depends>
         <jahia-deploy-on-site>system</jahia-deploy-on-site>
-        <jahia.modules.importPackage>org.jahia.defaults.config.spring,org.jahia.modules.external</jahia.modules.importPackage>
+        <jahia.modules.importPackage>org.jahia.defaults.config.spring,org.jahia.modules.external,org.eclipse.gemini.blueprint.context</jahia.modules.importPackage>
         <export-package>org.jahia.modules.external.users</export-package>
         <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
         <jahia-module-signature>MCwCFCBfd8mWKxswnR0xk01Sr8IE/C5SAhQfsOqcHC3TYzDhnwzCrVZFJBYfDw==</jahia-module-signature>
