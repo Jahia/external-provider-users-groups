@@ -74,7 +74,7 @@ module.exports = (env, argv) => {
                 hashDigest: 'hex',
                 hashDigestLength: 20
             }),
-            new CopyWebpackPlugin([{from: './package.json', to: ''}])
+            new CopyWebpackPlugin({patterns: [{from: './package.json', to: ''}]})
         ],
         mode: argv.mode
     };
