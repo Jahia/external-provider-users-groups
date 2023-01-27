@@ -65,12 +65,12 @@
     </scm>
     <properties>
         <jahia-module-type>system</jahia-module-type>
-        <jahia-depends>default,external-provider,serverSettings</jahia-depends>
+        <jahia-depends>external-provider</jahia-depends>
         <jahia-deploy-on-site>system</jahia-deploy-on-site>
         <jahia.modules.importPackage>org.jahia.defaults.config.spring,org.jahia.modules.external,org.eclipse.gemini.blueprint.context</jahia.modules.importPackage>
         <export-package>org.jahia.modules.external.users</export-package>
         <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
-        <jahia-module-signature>MC0CFCDDjUF7YE9YQQpD6y54fx81NVpAAhUAi5tz2nzjuOknXwrT+UQ8bOO7/gQ=</jahia-module-signature>
+        <jahia-module-signature>MCwCFFPonxcuuyVLzm+6k+1MO5BAw5KJAhQytVnQVs9tcnB5/LVlzzFNRd3tRg==</jahia-module-signature>
         <yarn.arguments>build:production</yarn.arguments>
     </properties>
     <dependencies>
