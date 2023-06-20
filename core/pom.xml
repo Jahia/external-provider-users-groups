@@ -44,7 +44,9 @@
         please contact the sales department at sales@jahia.com.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.jahia.modules</groupId>
@@ -67,9 +69,13 @@
         <jahia-module-type>system</jahia-module-type>
         <jahia-depends>external-provider</jahia-depends>
         <jahia-deploy-on-site>system</jahia-deploy-on-site>
-        <jahia.modules.importPackage>org.jahia.defaults.config.spring,org.jahia.modules.external,org.eclipse.gemini.blueprint.context</jahia.modules.importPackage>
+        <jahia.modules.importPackage>
+            org.jahia.defaults.config.spring,org.jahia.modules.external,org.eclipse.gemini.blueprint.context
+        </jahia.modules.importPackage>
         <export-package>org.jahia.modules.external.users</export-package>
-        <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
+        <require-capability>
+            osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"
+        </require-capability>
         <jahia-module-signature>MCwCFGuK2TvoTlXEEbN45uJ+fbX/7xFfAhQDD8iF+lK2o1Wzxg40HgRw2YqYfg==</jahia-module-signature>
         <yarn.arguments>build:production</yarn.arguments>
     </properties>
@@ -81,120 +87,118 @@
             <scope>provided</scope>
         </dependency>
 
-    <dependency>
-      <groupId>org.eclipse.gemini.blueprint</groupId>
-      <artifactId>gemini-blueprint-core</artifactId>
-      <version>${gemini.blueprint.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jahia.modules</groupId>
-      <artifactId>app-shell</artifactId>
-      <version>2.0.0</version>
-      <type>json</type>
-      <classifier>manifest</classifier>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jahia.modules</groupId>
-      <artifactId>app-shell</artifactId>
-      <version>2.0.0</version>
-      <scope>provided</scope>
-    </dependency>
-  </dependencies>
-  <repositories>
-    <repository>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>never</updatePolicy>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <id>jahia-public</id>
-      <name>Jahia Public Repository</name>
-      <url>https://devtools.jahia.com/nexus/content/groups/public</url>
-    </repository>
-  </repositories>
+        <dependency>
+            <groupId>org.eclipse.gemini.blueprint</groupId>
+            <artifactId>gemini-blueprint-core</artifactId>
+            <version>${gemini.blueprint.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+    <repositories>
+        <repository>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>jahia-public</id>
+            <name>Jahia Public Repository</name>
+            <url>https://devtools.jahia.com/nexus/content/groups/public</url>
+        </repository>
+    </repositories>
 
-  <build>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-      </resource>
-    </resources>
-    <plugins>
-      <plugin>
-        <artifactId>maven-clean-plugin</artifactId>
-        <version>3.1.0</version>
-        <configuration>
-          <filesets>
-            <fileset>
-              <directory>src/main/resources/javascript/apps</directory>
-              <includes>
-                <include>*</include>
-              </includes>
-            </fileset>
-          </filesets>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>com.github.eirslett</groupId>
-        <artifactId>frontend-maven-plugin</artifactId>
-        <version>1.8.0</version>
-        <executions>
-          <execution>
-            <id>npm install node and yarn</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>install-node-and-yarn</goal>
-            </goals>
-            <configuration>
-              <nodeVersion>v14.16.0</nodeVersion>
-              <yarnVersion>v1.22.11</yarnVersion>
-            </configuration>
-          </execution>
-          <execution>
-            <id>yarn install</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>yarn</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>yarn post-install</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>yarn</goal>
-            </goals>
-            <configuration>
-              <arguments>${yarn.arguments}</arguments>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>copy</id>
-            <phase>initialize</phase>
-            <goals>
-              <goal>copy</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <artifactItems>
-            <artifactItem>
-              <groupId>org.jahia.modules</groupId>
-              <artifactId>app-shell</artifactId>
-              <type>json</type>
-              <classifier>manifest</classifier>
-            </artifactItem>
-          </artifactItems>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>src/main/resources/javascript/apps</directory>
+                            <includes>
+                                <include>*</include>
+                            </includes>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>1.8.0</version>
+                <executions>
+                    <execution>
+                        <id>npm install node and yarn</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>install-node-and-yarn</goal>
+                        </goals>
+                        <configuration>
+                            <nodeVersion>v14.16.0</nodeVersion>
+                            <yarnVersion>v1.22.11</yarnVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>yarn install</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>yarn</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>yarn post-install</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>yarn</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>${yarn.arguments}</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>sync-pom</id>
+                        <phase>none</phase>
+                        <goals>
+                            <goal>yarn</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>sync-pom</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-scm-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>package-json</id>
+                        <phase>none</phase>
+                        <goals>
+                            <goal>checkin</goal>
+                        </goals>
+                        <configuration>
+                            <includes>package.json</includes>
+                            <message>[maven-scm-plugin] [skip ci] synchronize package.json</message>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <configuration>
+                    <preparationGoals>clean verify frontend:yarn@sync-pom scm:checkin@package-json</preparationGoals>
+                    <completionGoals>frontend:yarn@sync-pom scm:checkin@package-json</completionGoals>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
