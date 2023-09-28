@@ -1,5 +1,5 @@
 {
-  "name": "@jahia/external-provider",
+  "name": "@jahia/external-provider-users-groups",
   "version": "2.4.0-SNAPSHOT",
   "husky": {
     "hooks": {
