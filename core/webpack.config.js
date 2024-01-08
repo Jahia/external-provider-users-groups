@@ -1,10 +1,11 @@
 const path = require('path');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const {CleanWebpackPlugin} = require('clean-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ModuleFederationPlugin = require("webpack/lib/container/ModuleFederationPlugin");
-const shared = require("./webpack.shared")
 const {CycloneDxWebpackPlugin} = require('@cyclonedx/webpack-plugin');
+const getModuleFederationConfig = require('@jahia/webpack-config/getModuleFederationConfig');
+const packageJson = require('./package.json');
 
 /** @type {import('@cyclonedx/webpack-plugin').CycloneDxWebpackPluginOptions} */
 const cycloneDxWebpackPluginOptions = {
@@ -42,7 +43,10 @@ module.exports = (env, argv) => {
                         loader: 'babel-loader',
                         options: {
                             presets: [
-                                ['@babel/preset-env', {modules: false, targets: {chrome: '60', edge: '44', firefox: '54', safari: '12'}}],
+                                ['@babel/preset-env', {
+                                    modules: false,
+                                    targets: {chrome: '60', edge: '44', firefox: '54', safari: '12'}
+                                }],
                                 '@babel/preset-react'
                             ],
                             plugins: ['@babel/plugin-syntax-dynamic-import']
@@ -54,7 +58,7 @@ module.exports = (env, argv) => {
                     use: [
                         'style-loader',
                         {
-                            loader:'css-loader',
+                            loader: 'css-loader',
                             options: {
                                 modules: true
                             }
@@ -65,18 +69,11 @@ module.exports = (env, argv) => {
             ]
         },
         plugins: [
-            new ModuleFederationPlugin({
-                name: "edpug",
-                library: { type: "assign", name: "appShell.remotes.edpug" },
-                filename: "remoteEntry.js",
-                exposes: {
-                    './init': './src/javascript/init'
-                },
-                remotes: {
-                    '@jahia/app-shell': 'appShellRemote',
-                },
-                shared
-            }),
+            new ModuleFederationPlugin(getModuleFederationConfig(packageJson, {
+                    name: "edpug",
+                    library: {type: "assign", name: "appShell.remotes.edpug"}
+                })
+            ),
             new CleanWebpackPlugin({verbose: false}),
             new CopyWebpackPlugin({patterns: [{from: './package.json', to: ''}]})
         ],
