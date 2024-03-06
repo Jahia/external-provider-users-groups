@@ -43,8 +43,6 @@
  */
 package org.jahia.test.external.users;
 
-import com.google.common.collect.Sets;
-
 import org.apache.commons.lang.StringUtils;
 import org.jahia.services.content.*;
 import org.jahia.services.content.decorator.JCRGroupNode;
@@ -59,12 +57,13 @@ import org.junit.Test;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.*;
 
@@ -100,12 +99,12 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
         JCRGroupNode tyty = jahiaGroupManagerService.lookupGroup(null, "tyty");
         assertNotNull(tyty);
 
-        assertEquals("toto should have tata, tete and tutu as members", Sets.newHashSet(tata, tete, tutu), new HashSet<JCRNodeWrapper>(toto.getMembers()));
-        assertEquals("tutu should have titi as member", Sets.newHashSet(titi), new HashSet<JCRNodeWrapper>(tutu.getMembers()));
-        assertEquals("tyty should have tete and titi as members", Sets.newHashSet(tete, titi), new HashSet<JCRNodeWrapper>(tyty.getMembers()));
+        assertEquals("toto should have tata, tete and tutu as members", Stream.of(tata, tete, tutu).collect(Collectors.toSet()), new HashSet<>(toto.getMembers()));
+        assertEquals("tutu should have titi as member", Collections.singleton(titi), new HashSet<>(tutu.getMembers()));
+        assertEquals("tyty should have tete and titi as members", Stream.of(tata, tete).collect(Collectors.toSet()), new HashSet<>(tyty.getMembers()));
 
         Set<String> membership = new HashSet<String>(jahiaGroupManagerService.getMembershipByPath(titi.getPath()));
-        Set<String> expectedMembership = Sets.newHashSet(tutu.getPath(), toto.getPath(), tyty.getPath(), "/groups/users", "/groups/guest");
+        Set<String> expectedMembership = Stream.of(tata.getPath(), tete.getPath(), tutu.getPath(), "/groups/users", "/groups/guest").collect(Collectors.toSet());
         boolean expectedMembershipReturned = membership.containsAll(expectedMembership);
 
         // not need anymore since acls implemented test, users are also in some privileged groups.
@@ -137,7 +136,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
         Properties properties = new Properties();
         properties.put("username", "t*");
         Set<JCRUserNode> users = jahiaUserManagerService.searchUsers(properties);
-        Set<JCRUserNode> expectedUsers = Sets.<JCRUserNode>newHashSet(tata, tete, titi);
+        Set<JCRUserNode> expectedUsers = Stream.of(tata, tete, titi).collect(Collectors.toSet());
         boolean expectedUsersReturned = users.containsAll(expectedUsers);
         users.removeAll(expectedUsers);
         Set<JCRUserNode> wrongUsers = new HashSet<JCRUserNode>();
@@ -147,7 +146,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
                 wrongUsers.add(remainingUser);
             }
         }
-        assertTrue("'username=t*' search should return tata, tete and titi and no other users not having a usernmae with t: " + wrongUsers.toString(), expectedUsersReturned);
+        assertTrue("'username=t*' search should return tata, tete and titi and no other users not having a usernmae with t: " + wrongUsers, expectedUsersReturned);
 
         JCRGroupNode toto = jahiaGroupManagerService.lookupGroup(null, "toto");
         JCRGroupNode tutu = jahiaGroupManagerService.lookupGroup(null, "tutu");
@@ -156,7 +155,8 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
         properties = new Properties();
         properties.put("groupname", "t*");
         Set<JCRGroupNode> groups = jahiaGroupManagerService.searchGroups(null, properties);
-        assertEquals("'groupname=t*' search should return toto, tutu and tyty", Sets.newHashSet(toto, tutu, tyty), groups);
+        assertEquals("'groupname=t*' search should return toto, tutu and tyty", Stream.of(toto, tutu, tyty).collect(Collectors.toSet()),
+                groups);
     }
 
     @Test

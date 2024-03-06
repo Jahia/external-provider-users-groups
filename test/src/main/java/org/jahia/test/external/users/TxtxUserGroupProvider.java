@@ -43,10 +43,11 @@
  */
 package org.jahia.test.external.users;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.Collections2;
 import org.apache.commons.lang.StringUtils;
-import org.jahia.modules.external.users.*;
+import org.jahia.modules.external.users.BaseUserGroupProvider;
+import org.jahia.modules.external.users.GroupNotFoundException;
+import org.jahia.modules.external.users.Member;
+import org.jahia.modules.external.users.UserNotFoundException;
 import org.jahia.services.usermanager.JahiaGroup;
 import org.jahia.services.usermanager.JahiaGroupImpl;
 import org.jahia.services.usermanager.JahiaUser;
@@ -55,6 +56,7 @@ import org.jahia.services.usermanager.JahiaUserImpl;
 import javax.jcr.RepositoryException;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class TxtxUserGroupProvider extends BaseUserGroupProvider {
 
@@ -130,11 +132,12 @@ public class TxtxUserGroupProvider extends BaseUserGroupProvider {
         if (filter == null) {
             filter = (String) searchCriterias.get("*");
         }
-        ArrayList<String> l;
+        List<String> l;
         if (filter != null) {
-            l = new ArrayList<String>(Collections2.filter(users, Predicates.contains(Pattern.compile("^" + StringUtils.replace(filter, "*", ".*") + "$"))));
+            final String pattern = "^".concat(filter.replace("*", ".*")).concat("$");
+            l = users.stream().filter(user -> Pattern.matches(pattern, user)).collect(Collectors.toList());
         } else {
-            l = new ArrayList<String>(users);
+            l = new ArrayList<>(users);
         }
         return l.subList(Math.min((int) offset, l.size()), limit < 0 ? l.size() : Math.min((int) (offset + limit), l.size()));
     }
@@ -145,9 +148,10 @@ public class TxtxUserGroupProvider extends BaseUserGroupProvider {
         if (filter == null) {
             filter = (String) searchCriterias.get("*");
         }
-        ArrayList<String> l;
+        List<String> l;
         if (filter != null) {
-            l = new ArrayList<String>(Collections2.filter(groups, Predicates.contains(Pattern.compile("^" + StringUtils.replace(filter, "*", ".*") + "$"))));
+            final String pattern = "^".concat(filter.replace("*", ".*")).concat("$");
+            l = groups.stream().filter(group -> Pattern.matches(pattern, group)).collect(Collectors.toList());
         } else {
             l = new ArrayList<String>(groups);
         }
