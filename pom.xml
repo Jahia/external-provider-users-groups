@@ -80,23 +80,8 @@
         </repository>
     </repositories>
 
-    <profiles>
-        <profile>
-            <id>default</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <modules>
-                <module>core</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>tests</id>
-            <modules>
-                <module>core</module>
-                <module>test</module>
-            </modules>
-        </profile>
-    </profiles>
-
+    <modules>
+        <module>core</module>
+        <module>test</module>
+    </modules>
 </project>
