@@ -101,10 +101,10 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
 
         assertEquals("toto should have tata, tete and tutu as members", Stream.of(tata, tete, tutu).collect(Collectors.toSet()), new HashSet<>(toto.getMembers()));
         assertEquals("tutu should have titi as member", Collections.singleton(titi), new HashSet<>(tutu.getMembers()));
-        assertEquals("tyty should have tete and titi as members", Stream.of(tata, tete).collect(Collectors.toSet()), new HashSet<>(tyty.getMembers()));
+        assertEquals("tyty should have tete and titi as members", Stream.of(tete, titi).collect(Collectors.toSet()), new HashSet<>(tyty.getMembers()));
 
         Set<String> membership = new HashSet<String>(jahiaGroupManagerService.getMembershipByPath(titi.getPath()));
-        Set<String> expectedMembership = Stream.of(tata.getPath(), tete.getPath(), tutu.getPath(), "/groups/users", "/groups/guest").collect(Collectors.toSet());
+        Set<String> expectedMembership = Stream.of(tutu.getPath(), toto.getPath(), tyty.getPath(), "/groups/users", "/groups/guest").collect(Collectors.toSet());
         boolean expectedMembershipReturned = membership.containsAll(expectedMembership);
 
         // not need anymore since acls implemented test, users are also in some privileged groups.
