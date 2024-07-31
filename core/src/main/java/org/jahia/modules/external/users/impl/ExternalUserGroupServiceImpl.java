@@ -44,14 +44,13 @@
 package org.jahia.modules.external.users.impl;
 
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.gemini.blueprint.context.BundleContextAware;
 import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.modules.external.ExternalContentStoreProvider;
+import org.jahia.modules.external.ExternalContentStoreProviderFactory;
 import org.jahia.modules.external.users.ExternalUserGroupService;
 import org.jahia.modules.external.users.UserGroupProvider;
 import org.jahia.modules.external.users.UserGroupProviderConfiguration;
 import org.jahia.modules.external.users.UserGroupProviderRegistration;
-import org.jahia.services.SpringContextSingleton;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
@@ -61,14 +60,12 @@ import org.jahia.services.content.decorator.JCRMountPointNode;
 import org.jahia.services.usermanager.JahiaGroupManagerService;
 import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.jahia.settings.SettingsBean;
-import org.osgi.framework.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 /**
@@ -85,6 +82,8 @@ public class ExternalUserGroupServiceImpl implements ExternalUserGroupService {
 
     private JahiaUserManagerService jahiaUserManagerService;
     private JahiaGroupManagerService jahiaGroupManagerService;
+
+    private ExternalContentStoreProviderFactory externalContentStoreProviderFactory;
 
     private String readOnlyUserProperties;
 
@@ -114,7 +113,7 @@ public class ExternalUserGroupServiceImpl implements ExternalUserGroupService {
                 UserDataSource userDataSource = new UserDataSource();
                 userDataSource.setJahiaUserManagerService(jahiaUserManagerService);
                 userDataSource.setUserGroupProvider(userGroupProvider);
-                ExternalContentStoreProvider userProvider = (ExternalContentStoreProvider) SpringContextSingleton.getBeanInModulesContext("ExternalStoreProviderPrototype");
+                ExternalContentStoreProvider userProvider = externalContentStoreProviderFactory.newProvider();
                 userProvider.setKey(userProviderKey);
                 String sitePath = "/sites/" + siteKey + "/";
                 userProvider.setMountPoint((siteKey == null ? "/" : sitePath) + USERS_FOLDER_NAME + "/" + PROVIDERS_MOUNT_CONTAINER + "/" + providerKey);
@@ -145,7 +144,7 @@ public class ExternalUserGroupServiceImpl implements ExternalUserGroupService {
                     groupDataSource.setJahiaGroupManagerService(jahiaGroupManagerService);
                     groupDataSource.setUserDataSource(userDataSource);
                     groupDataSource.setUserGroupProvider(userGroupProvider);
-                    groupProvider = (ExternalContentStoreProvider) SpringContextSingleton.getBeanInModulesContext("ExternalStoreProviderPrototype");
+                    groupProvider = externalContentStoreProviderFactory.newProvider();
                     groupProvider.setKey(groupProviderKey);
                     groupProvider.setMountPoint((siteKey == null ? "/" : sitePath)+ GROUPS_FOLDER_NAME + "/" + PROVIDERS_MOUNT_CONTAINER + "/" + providerKey);
                     groupProvider.setDataSource(groupDataSource);
@@ -290,6 +289,10 @@ public class ExternalUserGroupServiceImpl implements ExternalUserGroupService {
 
     public void setJahiaGroupManagerService(JahiaGroupManagerService jahiaGroupManagerService) {
         this.jahiaGroupManagerService = jahiaGroupManagerService;
+    }
+
+    public void setExternalContentStoreProviderFactory(ExternalContentStoreProviderFactory externalContentStoreProviderFactory) {
+        this.externalContentStoreProviderFactory = externalContentStoreProviderFactory;
     }
 
 }
