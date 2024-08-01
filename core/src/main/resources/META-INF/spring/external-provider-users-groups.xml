@@ -7,12 +7,14 @@
 
   <bean id="messageSource" class="org.jahia.utils.i18n.ModuleMessageSource"/>
 
+  <osgi:reference id="ExternalContentStoreProviderFactory" interface="org.jahia.modules.external.ExternalContentStoreProviderFactory"/>
   <bean id="ExternalUserGroupServiceImpl" class="org.jahia.modules.external.users.impl.ExternalUserGroupServiceImpl">
     <property name="userGroupProviderConfigurations" >
       <osgi:list availability="optional" interface="org.jahia.modules.external.users.UserGroupProviderConfiguration"/>
     </property>
     <property name="jahiaUserManagerService" ref="JahiaUserManagerService"/>
     <property name="jahiaGroupManagerService" ref="JahiaGroupManagerService"/>
+    <property name="externalContentStoreProviderFactory" ref="ExternalContentStoreProviderFactory"/>
     <property name="readOnlyUserProperties" value="${external.users.properties.readonly:j:firstName,j:lastName,j:organization,j:email}"/>
   </bean>
 

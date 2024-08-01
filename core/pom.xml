@@ -74,7 +74,7 @@
         <require-capability>
             osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"
         </require-capability>
-        <jahia-module-signature>MCwCFGuK2TvoTlXEEbN45uJ+fbX/7xFfAhQDD8iF+lK2o1Wzxg40HgRw2YqYfg==</jahia-module-signature>
+        <jahia-module-signature>MCwCFDv7HuZe6m7HUfhqq22JzhdHb4l0AhQYasch3/QPMVhKAjFjsDENcT1XmA==</jahia-module-signature>
         <yarn.arguments>build:production</yarn.arguments>
         <sonar.sources>src/javascript</sonar.sources>
     </properties>
@@ -82,7 +82,7 @@
         <dependency>
             <groupId>org.jahia.modules</groupId>
             <artifactId>external-provider</artifactId>
-            <version>4.0.0</version>
+            <version>4.7.0</version>
             <scope>provided</scope>
         </dependency>
 
@@ -228,6 +228,14 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <version>5.1.9</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>biz.aQute.bnd</groupId>
+                        <artifactId>biz.aQute.bndlib</artifactId>
+                        <version>6.4.0</version>
+                    </dependency>
+                </dependencies>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
