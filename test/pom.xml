@@ -74,7 +74,7 @@
         <dependency>
             <groupId>org.jahia.test</groupId>
             <artifactId>jahia-test-module</artifactId>
-            <version>8.0.0.0</version>
+            <version>8.1.6.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
