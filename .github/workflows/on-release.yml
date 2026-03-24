@@ -44,7 +44,7 @@ jobs:
         name: Release Module
         with:
           github_slug: Jahia/external-provider-users-groups
-          primary_release_branch: master
+          primary_release_branch: main
           release_id: ${{ github.event.release.id }}
           release_version: ${{ github.event.release.tag_name }}
           github_api_token: ${{ secrets.GH_API_TOKEN }}
