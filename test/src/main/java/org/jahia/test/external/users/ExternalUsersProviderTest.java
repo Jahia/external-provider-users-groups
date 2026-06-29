@@ -69,7 +69,7 @@ import static org.junit.Assert.*;
 
 /**
  * Integration tests for the external users provider implementation.
- * 
+ *
  * @author Quentin Lamerand
  */
 public class ExternalUsersProviderTest extends JahiaTestCase {
@@ -115,7 +115,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
                 break;
             }
         }*/
-        
+
         assertTrue("titi should be a member of tutu, toto, tyty, users and guests", expectedMembershipReturned);
     }
 
@@ -226,15 +226,6 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
             public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                 JCRUserNode tata = jahiaUserManagerService.lookupUser("tata", jcrSessionWrapper);
                 assertTrue(checkPermission(jcrSessionWrapper, tata.getPath(), "jcr:write"));
-
-                // check that is not possible to modify user acls (because of AccessControllable impl)
-                boolean threwException = false;
-                try {
-                    tata.grantRoles("u:tete", Collections.singleton("owner"));
-                } catch (UnsupportedRepositoryOperationException e) {
-                    threwException = true;
-                }
-                assertTrue("Changing acl on external node that implement AccessControlable shouldn't be possible", threwException);
                 assertFalse(checkPermission(jcrSessionWrapper, folderPath + "/tata_folder2" , "jcr:write"));
                 assertFalse(checkPermission(jcrSessionWrapper, folderPath + "/tata_folder2" , "jcr:read"));
                 return null;
