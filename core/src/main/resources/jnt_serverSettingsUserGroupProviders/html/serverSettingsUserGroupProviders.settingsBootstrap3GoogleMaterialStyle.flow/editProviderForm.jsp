@@ -27,7 +27,7 @@
 </div>
 
 <c:if test="${not empty error}">
-    <div class="alert alert-danger">${error}</div>
+    <div class="alert alert-danger">${fn:escapeXml(error)}</div>
 </c:if>
 
 <div class="panel panel-default">
@@ -35,9 +35,15 @@
         <form style="margin: 0;" action="${flowExecutionUrl}" method="post" onsubmit="workInProgress('${i18nWaiting}')">
             <input type="hidden" name="providerKey" value="${providerKey}"/>
             <input type="hidden" name="providerClass" value="${providerClass}"/>
-            <input type="hidden" name="editJSP" value="${editJSP}"/>
 
-            <jsp:include page="${editJSP}"/>
+            <c:choose>
+                <c:when test="${not empty editJSP}">
+                    <jsp:include page="${editJSP}"/>
+                </c:when>
+                <c:otherwise>
+                    <div class="alert alert-danger"><fmt:message key="label.userGroupProvider.unknownProvider"/></div>
+                </c:otherwise>
+            </c:choose>
 
             <div class="form-group form-group-sm">
                 <button class="btn btn-primary btn-raised pull-right" type="submit" name="_eventId_save">

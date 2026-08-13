@@ -53,9 +53,7 @@ public class UserGroupProviderInfo implements Serializable {
     private static final long serialVersionUID = 8377758659660801865L;
 
     private boolean deleteSupported;
-    
-    private String editJSP;
-    
+
     private boolean editSupported;
     
     private boolean groupSupported;
@@ -69,10 +67,6 @@ public class UserGroupProviderInfo implements Serializable {
     private String siteKey;
 
     private boolean targetAvailable = true;
-
-    public String getEditJSP() {
-        return editJSP;
-    }
 
     public String getKey() {
         return key;
@@ -108,10 +102,6 @@ public class UserGroupProviderInfo implements Serializable {
 
     public void setDeleteSupported(boolean deleteSupported) {
         this.deleteSupported = deleteSupported;
-    }
-
-    public void setEditJSP(String editJSP) {
-        this.editJSP = editJSP;
     }
 
     public void setEditSupported(boolean editSupported) {

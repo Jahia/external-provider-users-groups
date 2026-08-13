@@ -183,7 +183,6 @@ public class UserGroupProviderAdminFlow implements Serializable {
             UserGroupProviderConfiguration configuration = configurations.get(userGroupProviderClass);
             if (configuration != null) {
                 providerInfo.setEditSupported(configuration.isEditSupported());
-                providerInfo.setEditJSP(configuration.getEditJSP());
                 providerInfo.setDeleteSupported(configuration.isDeleteSupported());
             }
             String siteKey = entry.getValue().getSiteKey();
@@ -200,6 +199,38 @@ public class UserGroupProviderAdminFlow implements Serializable {
             infos.add(providerInfo);
         }
         return infos;
+    }
+
+    /**
+     * Returns the JSP to include in the creation form of the given provider class.
+     * <p>
+     * The path is read back from the provider registry rather than taken from the request, so the form can only ever
+     * include a JSP that a registered provider declares for this purpose.
+     *
+     * @param providerClass
+     *            the provider class name submitted with the form
+     * @return the registered creation JSP, or <code>null</code> if the class is not registered or does not support
+     *         creation
+     */
+    public String resolveCreateJSP(String providerClass) {
+        UserGroupProviderConfiguration configuration = getConfiguration(providerClass);
+        return configuration != null && configuration.isCreateSupported() ? configuration.getCreateJSP() : null;
+    }
+
+    /**
+     * Returns the JSP to include in the edition form of the given provider class.
+     * <p>
+     * The path is read back from the provider registry rather than taken from the request, so the form can only ever
+     * include a JSP that a registered provider declares for this purpose.
+     *
+     * @param providerClass
+     *            the provider class name submitted with the form
+     * @return the registered edition JSP, or <code>null</code> if the class is not registered or does not support
+     *         edition
+     */
+    public String resolveEditJSP(String providerClass) {
+        UserGroupProviderConfiguration configuration = getConfiguration(providerClass);
+        return configuration != null && configuration.isEditSupported() ? configuration.getEditJSP() : null;
     }
 
     /**
@@ -262,6 +293,17 @@ public class UserGroupProviderAdminFlow implements Serializable {
             groupProvider.stop();
         }
         addNoteForCluster(messages);
+    }
+
+    private UserGroupProviderConfiguration getConfiguration(String providerClass) {
+        if (providerClass == null) {
+            return null;
+        }
+        UserGroupProviderConfiguration configuration = externalUserGroupService.getProviderConfigurations().get(providerClass);
+        if (configuration == null) {
+            logger.warn("No user/group provider is registered for class {}", providerClass);
+        }
+        return configuration;
     }
 
     private void wait(String providerKey, boolean shouldBeAvailable, MessageContext messages) {

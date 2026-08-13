@@ -32,7 +32,7 @@
         <on-entry>
             <evaluate expression="requestParameters.providerName" result="flashScope.providerName"/>
             <evaluate expression="requestParameters.providerClass" result="flashScope.providerClass"/>
-            <evaluate expression="requestParameters.createJSP" result="flashScope.createJSP"/>
+            <evaluate expression="userGroupProviderHandler.resolveCreateJSP(requestParameters.providerClass)" result="flashScope.createJSP"/>
         </on-entry>
         <transition on="create" to="createProvider"/>
         <transition on="cancel" to="theEnd"/>
@@ -50,7 +50,7 @@
         <on-entry>
             <evaluate expression="requestParameters.providerKey" result="flashScope.providerKey"/>
             <evaluate expression="requestParameters.providerClass" result="flashScope.providerClass"/>
-            <evaluate expression="requestParameters.editJSP" result="flashScope.editJSP"/>
+            <evaluate expression="userGroupProviderHandler.resolveEditJSP(requestParameters.providerClass)" result="flashScope.editJSP"/>
         </on-entry>
         <transition on="save" to="editProvider"/>
         <transition on="cancel" to="theEnd"/>

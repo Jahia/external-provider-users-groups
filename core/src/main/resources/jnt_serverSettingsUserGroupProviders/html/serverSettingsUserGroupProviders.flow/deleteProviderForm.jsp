@@ -24,7 +24,7 @@
 </fmt:message></h2>
 
 <c:if test="${not empty error}">
-    <div class="alert alert-error">${error}</div>
+    <div class="alert alert-error">${fn:escapeXml(error)}</div>
 </c:if>
 
 <div class="alert"><fmt:message key="label.userGroupProvider.delete.confirm"/></div>

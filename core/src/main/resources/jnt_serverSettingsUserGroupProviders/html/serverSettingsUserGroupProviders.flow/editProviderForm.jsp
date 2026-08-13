@@ -24,15 +24,21 @@
 </fmt:message></h2>
 
 <c:if test="${not empty error}">
-    <div class="alert alert-error">${error}</div>
+    <div class="alert alert-error">${fn:escapeXml(error)}</div>
 </c:if>
 
 <form style="margin: 0;" action="${flowExecutionUrl}" method="post" onsubmit="workInProgress('${i18nWaiting}')">
     <input type="hidden" name="providerKey" value="${providerKey}"/>
     <input type="hidden" name="providerClass" value="${providerClass}"/>
-    <input type="hidden" name="editJSP" value="${editJSP}"/>
 
-    <jsp:include page="${editJSP}"/>
+    <c:choose>
+        <c:when test="${not empty editJSP}">
+            <jsp:include page="${editJSP}"/>
+        </c:when>
+        <c:otherwise>
+            <div class="alert alert-error"><fmt:message key="label.userGroupProvider.unknownProvider"/></div>
+        </c:otherwise>
+    </c:choose>
 
     <div>
         <button class="btn btn-primary" type="submit" name="_eventId_save">

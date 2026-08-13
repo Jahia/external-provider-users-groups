@@ -112,9 +112,6 @@
                     <c:if test="${userGroupProvider.editSupported or userGroupProvider.deleteSupported}">
                         <input type="hidden" name="providerClass" value="${userGroupProvider.providerClass}"/>
                     </c:if>
-                    <c:if test="${userGroupProvider.editSupported}">
-                        <input type="hidden" name="editJSP" value="${userGroupProvider.editJSP}"/>
-                    </c:if>
 
                     <c:choose>
                         <c:when test="${userGroupProvider.running}">
@@ -152,7 +149,6 @@
         <form style="margin: 0;" action="${flowExecutionUrl}" method="post">
             <input type="hidden" name="providerClass" value="${createConfiguration.key}"/>
             <input type="hidden" name="providerName" value="${createConfiguration.value.name}"/>
-            <input type="hidden" name="createJSP" value="${createConfiguration.value.createJSP}"/>
 
             <button class="btn" type="submit" name="_eventId_createProvider">
                 <i class="icon icon-plus"></i>&nbsp;<fmt:message key="label.userGroupProvider.create">
