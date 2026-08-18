@@ -57,10 +57,14 @@ import org.jahia.modules.external.users.UserGroupProvider;
 import org.jahia.modules.external.users.UserGroupProviderConfiguration;
 import org.jahia.modules.external.users.UserGroupProviderRegistration;
 import org.jahia.modules.external.users.impl.UserDataSource;
+import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRStoreProvider;
 import org.jahia.services.content.JCRStoreService;
+import org.jahia.services.render.RenderContext;
+import org.jahia.services.render.Resource;
 import org.jahia.services.sites.JahiaSite;
 import org.jahia.services.sites.JahiaSitesService;
+import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.settings.SettingsBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +88,18 @@ public class UserGroupProviderAdminFlow implements Serializable {
 
     private static final int WAIT_SLEEP = 2000;
 
+    /**
+     * Permission the caller must hold to use this screen.
+     * <p>
+     * {@code admin} is a core permission granted at the repository root by the
+     * {@code server-administrator} role, so it resolves on whichever node the screen is rendered
+     * against. The finer {@code adminUsers} requirement this screen's own template declares is
+     * contributed by another module, and a permission that is not registered on an instance
+     * resolves to {@code false} — which would fail closed for administrators too. The template
+     * keeps declaring it, so what follows is an additional condition and never a replacement.
+     */
+    private static final String REQUIRED_PERMISSION = "admin";
+
     @Autowired
     private transient ExternalUserGroupService externalUserGroupService;
 
@@ -98,10 +114,18 @@ public class UserGroupProviderAdminFlow implements Serializable {
      *            flow parameter map
      * @param flashScope
      *            flow attribute map
+     * @param renderContext
+     *            the context of the render this transition was submitted from
      * @throws Exception
      *             in case of a creation error
      */
-    public void createProvider(ParameterMap parameters, MutableAttributeMap<Object> flashScope, MessageContext messages) throws Exception {
+    public void createProvider(ParameterMap parameters, MutableAttributeMap<Object> flashScope, MessageContext messages,
+            RenderContext renderContext) throws Exception {
+        if (!isAdministrationGranted(renderContext)) {
+            declined(messages);
+            return;
+        }
+
         Map<String, UserGroupProviderConfiguration> configurations = externalUserGroupService.getProviderConfigurations();
         String providerClass = parameters.get("providerClass");
         String providerKey = configurations.get(providerClass).create(parameters.asMap(), flashScope.asMap()) + ".users";
@@ -117,10 +141,18 @@ public class UserGroupProviderAdminFlow implements Serializable {
      *            provider class name
      * @param flashScope
      *            the flow attribute map
+     * @param renderContext
+     *            the context of the render this transition was submitted from
      * @throws Exception
      *             in case of an error during deletion
      */
-    public void deleteProvider(String providerKey, String providerClass, MutableAttributeMap<Object> flashScope, MessageContext messages) throws Exception {
+    public void deleteProvider(String providerKey, String providerClass, MutableAttributeMap<Object> flashScope,
+            MessageContext messages, RenderContext renderContext) throws Exception {
+        if (!isAdministrationGranted(renderContext)) {
+            declined(messages);
+            return;
+        }
+
         Map<String, UserGroupProviderConfiguration> configurations = externalUserGroupService.getProviderConfigurations();
         configurations.get(providerClass).delete(providerKey, flashScope.asMap());
         providerKey += ".users";
@@ -134,10 +166,18 @@ public class UserGroupProviderAdminFlow implements Serializable {
      *            flow parameter map
      * @param flashScope
      *            flow attribute map
+     * @param renderContext
+     *            the context of the render this transition was submitted from
      * @throws Exception
      *             in case of an error during edition
      */
-    public void editProvider(ParameterMap parameters, MutableAttributeMap<Object> flashScope, MessageContext messages) throws Exception {
+    public void editProvider(ParameterMap parameters, MutableAttributeMap<Object> flashScope, MessageContext messages,
+            RenderContext renderContext) throws Exception {
+        if (!isAdministrationGranted(renderContext)) {
+            declined(messages);
+            return;
+        }
+
         Map<String, UserGroupProviderConfiguration> configurations = externalUserGroupService.getProviderConfigurations();
         String providerKey = parameters.get("providerKey");
         String providerClass = parameters.get("providerClass");
@@ -149,9 +189,15 @@ public class UserGroupProviderAdminFlow implements Serializable {
     /**
      * Returns the provider create configuration map.
      *
-     * @return the provider create configuration map
+     * @param renderContext
+     *            the context of the render this screen is being served from
+     * @return the provider create configuration map, empty when the caller may not use this screen
      */
-    public Map<String, UserGroupProviderConfiguration> getCreateConfigurations() {
+    public Map<String, UserGroupProviderConfiguration> getCreateConfigurations(RenderContext renderContext) {
+        if (!isAdministrationGranted(renderContext)) {
+            return new HashMap<String, UserGroupProviderConfiguration>();
+        }
+
         HashMap<String, UserGroupProviderConfiguration> map = new HashMap<String, UserGroupProviderConfiguration>();
         for (Map.Entry<String, UserGroupProviderConfiguration> entry : externalUserGroupService.getProviderConfigurations().entrySet()) {
             if (entry.getValue().isCreateSupported()) {
@@ -164,9 +210,15 @@ public class UserGroupProviderAdminFlow implements Serializable {
     /**
      * Returns a list of registered user/group providers.
      *
-     * @return a list of registered user/group providers
+     * @param renderContext
+     *            the context of the render this screen is being served from
+     * @return a list of registered user/group providers, empty when the caller may not use this screen
      */
-    public List<UserGroupProviderInfo> getUserGroupProviders() {
+    public List<UserGroupProviderInfo> getUserGroupProviders(RenderContext renderContext) {
+        if (!isAdministrationGranted(renderContext)) {
+            return new ArrayList<UserGroupProviderInfo>();
+        }
+
         ArrayList<UserGroupProviderInfo> infos = new ArrayList<UserGroupProviderInfo>();
         Map<String, JCRStoreProvider> providers = jcrStoreService.getSessionFactory().getProviders();
         for (Map.Entry<String, UserGroupProviderRegistration> entry : externalUserGroupService.getRegisteredProviders().entrySet()) {
@@ -203,14 +255,37 @@ public class UserGroupProviderAdminFlow implements Serializable {
     }
 
     /**
+     * Returns the provider key the edition and deletion forms work on.
+     * <p>
+     * These forms resolve the named provider's stored configuration, so the key carries the same requirement as
+     * the rest of the screen. Without one they have nothing to resolve and render empty.
+     *
+     * @param providerKey
+     *            the provider key submitted with the form
+     * @param renderContext
+     *            the context of the render this screen is being served from
+     * @return the submitted key, when the caller may use this screen
+     */
+    public String resolveProviderKey(String providerKey, RenderContext renderContext) {
+        return isAdministrationGranted(renderContext) ? providerKey : null;
+    }
+
+    /**
      * Resumes the specified provider.
      *
      * @param providerKey
      *            the key of the provider to be resumed
+     * @param renderContext
+     *            the context of the render this transition was submitted from
      * @throws JahiaInitializationException
      *             in case of a provider initialization error
      */
-    public void resumeProvider(String providerKey, MessageContext messages) throws JahiaInitializationException {
+    public void resumeProvider(String providerKey, MessageContext messages, RenderContext renderContext) throws JahiaInitializationException {
+        if (!isAdministrationGranted(renderContext)) {
+            declined(messages);
+            return;
+        }
+
         UserGroupProviderRegistration registration = externalUserGroupService.getRegisteredProviders().get(providerKey);
 
         boolean isUnavailable = true; // unavailable by default
@@ -250,8 +325,14 @@ public class UserGroupProviderAdminFlow implements Serializable {
      * Suspends the provider.
      *
      * @param providerKey the key of the provider to be resumed
+     * @param renderContext the context of the render this transition was submitted from
      */
-    public void suspendProvider(String providerKey, MessageContext messages) {
+    public void suspendProvider(String providerKey, MessageContext messages, RenderContext renderContext) {
+        if (!isAdministrationGranted(renderContext)) {
+            declined(messages);
+            return;
+        }
+
         UserGroupProviderRegistration registration = externalUserGroupService.getRegisteredProviders().get(providerKey);
         JCRStoreProvider userProvider = registration.getUserProvider();
         if (userProvider != null) {
@@ -262,6 +343,70 @@ public class UserGroupProviderAdminFlow implements Serializable {
             groupProvider.stop();
         }
         addNoteForCluster(messages);
+    }
+
+    /**
+     * Whether the caller may read or change this instance's identity providers.
+     * <p>
+     * The requirement is evaluated on the render's <strong>main resource</strong>: the settings node, or the
+     * node the request was made against, which is what an administrator role is granted on. That target is
+     * load-bearing rather than incidental. What this screen reaches belongs to the module's own services
+     * rather than to a node bound to the caller, so the main resource is the one thing here on which
+     * {@code hasPermission} can express a requirement.
+     *
+     * @param renderContext the context of the render the transition was submitted from
+     * @return {@code true} when the caller holds {@link #REQUIRED_PERMISSION} on the main resource
+     */
+    private boolean isAdministrationGranted(RenderContext renderContext) {
+        Resource mainResource = renderContext != null ? renderContext.getMainResource() : null;
+        JahiaUser user = renderContext != null ? renderContext.getUser() : null;
+        return grantsAdministration(mainResource != null ? mainResource.getNode() : null,
+                user != null ? user.getName() : null);
+    }
+
+    /**
+     * Visible for testing: the decision itself, on the node it is evaluated against.
+     * <p>
+     * Fails closed on a null node: with no node there is nothing to evaluate the requirement against, and
+     * every operation this screen offers is an administration capability.
+     * <p>
+     * Reports at {@code DEBUG}: this runs on every render, so a louder level would make the log grow with
+     * ordinary traffic. The one report an operator acts on is written once per attempted operation, by
+     * {@link #declined(MessageContext)}.
+     *
+     * @param contextNode the node the requirement is evaluated on, or {@code null} when there is none
+     * @param callerName the name of the caller, for the debug report only
+     * @return {@code true} when the caller holds {@link #REQUIRED_PERMISSION} on {@code contextNode}
+     */
+    static boolean grantsAdministration(JCRNodeWrapper contextNode, String callerName) {
+        if (contextNode == null) {
+            logger.debug("No main resource to evaluate {} against", REQUIRED_PERMISSION);
+            return false;
+        }
+
+        if (contextNode.hasPermission(REQUIRED_PERMISSION)) {
+            return true;
+        }
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("{} does not hold {} on {}", callerName != null ? callerName : "the current user",
+                    REQUIRED_PERMISSION, contextNode.getPath());
+        }
+        return false;
+    }
+
+    /**
+     * Reports that the requested operation was not carried out, with the screen's generic error.
+     * <p>
+     * The message shown says nothing about which condition was not met: it is the same text the screen shows
+     * for any operation it could not complete. The log line names the permission and nothing
+     * caller-controlled; {@code DEBUG} on this class identifies the caller and the node.
+     */
+    private static void declined(MessageContext messages) {
+        logger.warn("A user and group provider operation was not carried out: the caller does not hold {} on the"
+                + " node the screen was rendered against. Enable DEBUG on this class for the caller and the node.",
+                REQUIRED_PERMISSION);
+        messages.addMessage(new MessageBuilder().error().code("label.error").build());
     }
 
     private void wait(String providerKey, boolean shouldBeAvailable, MessageContext messages) {
