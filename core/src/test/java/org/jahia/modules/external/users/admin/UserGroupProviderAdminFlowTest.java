@@ -45,7 +45,7 @@ public class UserGroupProviderAdminFlowTest {
     /** A node that answers {@code granted} to the permission this screen requires. */
     private static JCRNodeWrapper node(boolean granted) {
         JCRNodeWrapper node = mock(JCRNodeWrapper.class);
-        when(node.hasPermission("admin")).thenReturn(granted);
+        when(node.hasPermission("adminUsers")).thenReturn(granted);
         when(node.getPath()).thenReturn(NODE_PATH);
         return node;
     }
@@ -67,6 +67,20 @@ public class UserGroupProviderAdminFlowTest {
     @Test
     public void aCallerHoldingThePermissionIsGranted() {
         assertTrue(grantsAdministration(node(true), "an administrator"));
+    }
+
+    /**
+     * The requirement is the screen's own permission, not the aggregate that implies it: a role may hold
+     * {@code adminUsers} without holding {@code admin}, and the template admits such a role.
+     */
+    @Test
+    public void aCallerHoldingOnlyTheAggregateNameIsNotWhatIsAskedFor() {
+        JCRNodeWrapper aggregateOnly = mock(JCRNodeWrapper.class);
+        when(aggregateOnly.hasPermission("admin")).thenReturn(true);
+        when(aggregateOnly.hasPermission("adminUsers")).thenReturn(false);
+        when(aggregateOnly.getPath()).thenReturn(NODE_PATH);
+
+        assertFalse(grantsAdministration(aggregateOnly, "a caller the template would refuse"));
     }
 
     @Test

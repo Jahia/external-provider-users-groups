@@ -91,14 +91,12 @@ public class UserGroupProviderAdminFlow implements Serializable {
     /**
      * Permission the caller must hold to use this screen.
      * <p>
-     * {@code admin} is a core permission granted at the repository root by the
-     * {@code server-administrator} role, so it resolves on whichever node the screen is rendered
-     * against. The finer {@code adminUsers} requirement this screen's own template declares is
-     * contributed by another module, and a permission that is not registered on an instance
-     * resolves to {@code false} — which would fail closed for administrators too. The template
-     * keeps declaring it, so what follows is an additional condition and never a replacement.
+     * The same permission this screen's own template declares, so the two enforcement points agree by
+     * construction and a role that the template admits is not refused here. It is a child of the {@code admin}
+     * aggregate rather than the aggregate itself: a role may hold it without holding {@code admin}, which is
+     * how a delegated identity-administration role is expressed, whereas {@code admin} implies it.
      */
-    private static final String REQUIRED_PERMISSION = "admin";
+    private static final String REQUIRED_PERMISSION = "adminUsers";
 
     @Autowired
     private transient ExternalUserGroupService externalUserGroupService;
