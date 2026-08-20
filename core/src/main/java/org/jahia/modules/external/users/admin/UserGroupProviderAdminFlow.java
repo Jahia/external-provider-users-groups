@@ -98,6 +98,17 @@ public class UserGroupProviderAdminFlow implements Serializable {
      */
     private static final String REQUIRED_PERMISSION = "adminUsers";
 
+    /**
+     * Render mode in which a module's own definitions are edited, named as core names it.
+     * <p>
+     * Studio renders module content by design, and core's render conditions exempt it for that reason. It is
+     * reachable only where {@code operatingMode} is {@code development}: the controller behind
+     * {@code /cms/studio} declares {@code availableInProductionMode=false}. Applying the requirement here
+     * would leave this screen alone among its siblings in refusing the one mode a template developer places
+     * it from, and would withhold nothing anywhere the screen is actually served.
+     */
+    private static final String STUDIO_MODE = "studiomode";
+
     @Autowired
     private transient ExternalUserGroupService externalUserGroupService;
 
@@ -346,16 +357,21 @@ public class UserGroupProviderAdminFlow implements Serializable {
     /**
      * Whether the caller may read or change this instance's identity providers.
      * <p>
-     * The requirement is evaluated on the render's <strong>main resource</strong>: the settings node, or the
-     * node the request was made against, which is what an administrator role is granted on. That target is
-     * load-bearing rather than incidental. What this screen reaches belongs to the module's own services
-     * rather than to a node bound to the caller, so the main resource is the one thing here on which
-     * {@code hasPermission} can express a requirement.
+     * {@link #STUDIO_MODE} is exempt, for the reason given there. Otherwise the requirement is evaluated on
+     * the render's <strong>main resource</strong>: the settings node, or the node the request was made
+     * against, which is what an administrator role is granted on. That target is load-bearing rather than
+     * incidental. What this screen reaches belongs to the module's own services rather than to a node bound
+     * to the caller, so the main resource is the one thing here on which {@code hasPermission} can express a
+     * requirement.
      *
      * @param renderContext the context of the render the transition was submitted from
      * @return {@code true} when the caller holds {@link #REQUIRED_PERMISSION} on the main resource
      */
     private boolean isAdministrationGranted(RenderContext renderContext) {
+        if (renderContext != null && STUDIO_MODE.equals(renderContext.getEditModeConfigName())) {
+            return true;
+        }
+
         Resource mainResource = renderContext != null ? renderContext.getMainResource() : null;
         JahiaUser user = renderContext != null ? renderContext.getUser() : null;
         return grantsAdministration(mainResource != null ? mainResource.getNode() : null,

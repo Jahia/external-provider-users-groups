@@ -1,6 +1,7 @@
 package org.jahia.modules.external.users.admin;
 
 import static org.jahia.modules.external.users.admin.UserGroupProviderAdminFlow.grantsAdministration;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.jahia.services.content.JCRNodeWrapper;
+import org.jahia.services.render.RenderContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.binding.message.MessageContext;
@@ -97,6 +99,28 @@ public class UserGroupProviderAdminFlowTest {
     public void anUnnamedCallerIsStillDecidedOnThePermission() {
         assertTrue(grantsAdministration(node(true), null));
         assertFalse(grantsAdministration(node(false), null));
+    }
+
+    /**
+     * Studio renders a module's own definitions, and core's render conditions exempt it. A render context is
+     * enough to reach the decision for this case: the exemption is answered before the main resource is read,
+     * so no {@code Resource} is needed.
+     */
+    @Test
+    public void aStudioRenderIsExempt() {
+        RenderContext studio = mock(RenderContext.class);
+        when(studio.getEditModeConfigName()).thenReturn("studiomode");
+
+        assertEquals(PROVIDER_KEY, handler.resolveProviderKey(PROVIDER_KEY, studio));
+    }
+
+    /** The exemption is that one mode and no other: any other mode falls through to the requirement. */
+    @Test
+    public void anyOtherModeIsNotExempt() {
+        RenderContext editMode = mock(RenderContext.class);
+        when(editMode.getEditModeConfigName()).thenReturn("editmode");
+
+        assertNull(handler.resolveProviderKey(PROVIDER_KEY, editMode));
     }
 
     @Test
