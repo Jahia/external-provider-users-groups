@@ -91,10 +91,8 @@ public class UserGroupProviderAdminFlow implements Serializable {
     /**
      * Permission the caller must hold to use this screen.
      * <p>
-     * The same permission this screen's own template declares, so the two enforcement points agree by
-     * construction and a role that the template admits is not refused here. It is a child of the {@code admin}
-     * aggregate rather than the aggregate itself: a role may hold it without holding {@code admin}, which is
-     * how a delegated identity-administration role is expressed, whereas {@code admin} implies it.
+     * The same permission this screen's own template declares (see {@code repository.xml}), so the two
+     * enforcement points ask for the same thing and a caller the template admits is not refused here.
      */
     private static final String REQUIRED_PERMISSION = "adminUsers";
 
@@ -264,22 +262,6 @@ public class UserGroupProviderAdminFlow implements Serializable {
     }
 
     /**
-     * Returns the provider key the edition and deletion forms work on.
-     * <p>
-     * These forms resolve the named provider's stored configuration, so the key carries the same requirement as
-     * the rest of the screen. Without one they have nothing to resolve and render empty.
-     *
-     * @param providerKey
-     *            the provider key submitted with the form
-     * @param renderContext
-     *            the context of the render this screen is being served from
-     * @return the submitted key, when the caller may use this screen
-     */
-    public String resolveProviderKey(String providerKey, RenderContext renderContext) {
-        return isAdministrationGranted(renderContext) ? providerKey : null;
-    }
-
-    /**
      * Resumes the specified provider.
      *
      * @param providerKey
@@ -358,23 +340,34 @@ public class UserGroupProviderAdminFlow implements Serializable {
      * Whether the caller may read or change this instance's identity providers.
      * <p>
      * {@link #STUDIO_MODE} is exempt, for the reason given there. Otherwise the requirement is evaluated on
-     * the render's <strong>main resource</strong>: the settings node, or the node the request was made
-     * against, which is what an administrator role is granted on. That target is load-bearing rather than
-     * incidental. What this screen reaches belongs to the module's own services rather than to a node bound
-     * to the caller, so the main resource is the one thing here on which {@code hasPermission} can express a
-     * requirement.
+     * the render's resource — the AJAX resource when there is one, the main resource otherwise, the same
+     * selection {@code TemplatePermissionCheckFilter} makes — which is what an administrator role is granted
+     * on. That target is load-bearing rather than incidental. What this screen reaches belongs to the
+     * module's own services rather than to a node bound to the caller, so this resource is the one thing here
+     * on which {@code hasPermission} can express a requirement.
+     *
+     * Called from the flow: the mutating transitions gate their write on it, and the edit and delete forms
+     * gate their entry on it through a decision-state, so an unauthorized caller is never served a form that
+     * would read an existing provider's stored configuration.
      *
      * @param renderContext the context of the render the transition was submitted from
      * @return {@code true} when the caller holds {@link #REQUIRED_PERMISSION} on the main resource
      */
-    private boolean isAdministrationGranted(RenderContext renderContext) {
+    public boolean isAdministrationGranted(RenderContext renderContext) {
         if (renderContext != null && STUDIO_MODE.equals(renderContext.getEditModeConfigName())) {
             return true;
         }
 
-        Resource mainResource = renderContext != null ? renderContext.getMainResource() : null;
+        Resource resource = null;
+        if (renderContext != null) {
+            // Same resource TemplatePermissionCheckFilter evaluates its requirement on: the AJAX resource
+            // when the render has one, the main resource otherwise. Selecting differently would let the two
+            // enforcement points disagree on an AJAX render and refuse a caller the template admits.
+            resource = renderContext.getAjaxResource() != null
+                    ? renderContext.getAjaxResource() : renderContext.getMainResource();
+        }
         JahiaUser user = renderContext != null ? renderContext.getUser() : null;
-        return grantsAdministration(mainResource != null ? mainResource.getNode() : null,
+        return grantsAdministration(resource != null ? resource.getNode() : null,
                 user != null ? user.getName() : null);
     }
 
@@ -394,7 +387,7 @@ public class UserGroupProviderAdminFlow implements Serializable {
      */
     static boolean grantsAdministration(JCRNodeWrapper contextNode, String callerName) {
         if (contextNode == null) {
-            logger.debug("No main resource to evaluate {} against", REQUIRED_PERMISSION);
+            logger.debug("No render resource to evaluate {} against", REQUIRED_PERMISSION);
             return false;
         }
 
@@ -410,17 +403,17 @@ public class UserGroupProviderAdminFlow implements Serializable {
     }
 
     /**
-     * Reports that the requested operation was not carried out, with the screen's generic error.
+     * Reports that the requested operation was not carried out.
      * <p>
-     * The message shown says nothing about which condition was not met: it is the same text the screen shows
-     * for any operation it could not complete. The log line names the permission and nothing
-     * caller-controlled; {@code DEBUG} on this class identifies the caller and the node.
+     * The message names the screen, not the condition: the same text stands whether the caller lacked the
+     * permission or the render had no node to evaluate it against. The log line names the permission and
+     * nothing caller-controlled; {@code DEBUG} on this class identifies the caller and the node.
      */
     private static void declined(MessageContext messages) {
         logger.warn("A user and group provider operation was not carried out: the caller does not hold {} on the"
                 + " node the screen was rendered against. Enable DEBUG on this class for the caller and the node.",
                 REQUIRED_PERMISSION);
-        messages.addMessage(new MessageBuilder().error().code("label.error").build());
+        messages.addMessage(new MessageBuilder().error().code("label.userGroupProvider.notPermitted").build());
     }
 
     private void wait(String providerKey, boolean shouldBeAvailable, MessageContext messages) {

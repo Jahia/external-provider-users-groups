@@ -2,4 +2,4 @@
 external-provider-users-groups: patch
 ---
 
-Restricted the user and group providers screen to callers who administer users and groups.
+Hardened the user and group providers screen so its administration permission is enforced wherever the screen appears.

@@ -14,9 +14,21 @@
         <transition on="suspendProvider" to="suspendProvider"/>
         <transition on="resumeProvider" to="resumeProvider"/>
         <transition on="createProvider" to="createProviderForm"/>
-        <transition on="editProvider" to="editProviderForm"/>
-        <transition on="deleteProvider" to="deleteProviderForm"/>
+        <transition on="editProvider" to="editProviderAllowed"/>
+        <transition on="deleteProvider" to="deleteProviderAllowed"/>
     </view-state>
+
+    <!-- The edit and delete forms read an existing provider's stored configuration, so entry is refused
+         unless the caller may administer this screen; a refused caller is routed back to the list. -->
+    <decision-state id="editProviderAllowed">
+        <if test="userGroupProviderHandler.isAdministrationGranted(externalContext.requestMap.renderContext)"
+            then="editProviderForm" else="view"/>
+    </decision-state>
+
+    <decision-state id="deleteProviderAllowed">
+        <if test="userGroupProviderHandler.isAdministrationGranted(externalContext.requestMap.renderContext)"
+            then="deleteProviderForm" else="view"/>
+    </decision-state>
 
     <action-state id="suspendProvider">
         <evaluate expression="userGroupProviderHandler.suspendProvider(requestParameters.providerKey, messageContext, externalContext.requestMap.renderContext)"/>
@@ -48,7 +60,7 @@
 
     <view-state id="editProviderForm">
         <on-entry>
-            <evaluate expression="userGroupProviderHandler.resolveProviderKey(requestParameters.providerKey, externalContext.requestMap.renderContext)" result="flashScope.providerKey"/>
+            <evaluate expression="requestParameters.providerKey" result="flashScope.providerKey"/>
             <evaluate expression="requestParameters.providerClass" result="flashScope.providerClass"/>
             <evaluate expression="requestParameters.editJSP" result="flashScope.editJSP"/>
         </on-entry>
@@ -66,7 +78,7 @@
 
     <view-state id="deleteProviderForm">
       <on-entry>
-        <evaluate expression="userGroupProviderHandler.resolveProviderKey(requestParameters.providerKey, externalContext.requestMap.renderContext)" result="flashScope.providerKey"/>
+        <evaluate expression="requestParameters.providerKey" result="flashScope.providerKey"/>
         <evaluate expression="requestParameters.providerClass" result="flashScope.providerClass"/>
       </on-entry>
       <transition on="delete" to="deleteProvider"/>

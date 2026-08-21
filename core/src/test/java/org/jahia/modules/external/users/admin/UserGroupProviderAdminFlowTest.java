@@ -1,9 +1,7 @@
 package org.jahia.modules.external.users.admin;
 
 import static org.jahia.modules.external.users.admin.UserGroupProviderAdminFlow.grantsAdministration;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -12,6 +10,8 @@ import static org.mockito.Mockito.when;
 
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.render.RenderContext;
+import org.jahia.services.render.Resource;
+import org.jahia.services.usermanager.JahiaUser;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.binding.message.MessageContext;
@@ -31,9 +31,11 @@ import java.util.Collections;
  * reaches that service, so each of them completes only while that ordering holds. Were the check to move after
  * the service call, they would fail on the unset field rather than pass.
  * <p>
- * The permission decision is exercised through {@link UserGroupProviderAdminFlow#grantsAdministration}, on the
- * node it is evaluated against. Going through a {@code RenderContext} instead would mean constructing a
- * {@code Resource}, whose static initialisation needs a running Jahia.
+ * The decision is exercised two ways. {@link UserGroupProviderAdminFlow#grantsAdministration} is called
+ * directly for the truth table on the node. The public methods are driven through a mocked
+ * {@code RenderContext} to cover the mapping from that context to the node and caller — the step a direct
+ * call skips. Mocking {@code Resource} pulls in Guava (its class initialiser needs it), which is why the
+ * test scope carries that dependency.
  */
 public class UserGroupProviderAdminFlowTest {
 
@@ -71,20 +73,6 @@ public class UserGroupProviderAdminFlowTest {
         assertTrue(grantsAdministration(node(true), "an administrator"));
     }
 
-    /**
-     * The requirement is the screen's own permission, not the aggregate that implies it: a role may hold
-     * {@code adminUsers} without holding {@code admin}, and the template admits such a role.
-     */
-    @Test
-    public void aCallerHoldingOnlyTheAggregateNameIsNotWhatIsAskedFor() {
-        JCRNodeWrapper aggregateOnly = mock(JCRNodeWrapper.class);
-        when(aggregateOnly.hasPermission("admin")).thenReturn(true);
-        when(aggregateOnly.hasPermission("adminUsers")).thenReturn(false);
-        when(aggregateOnly.getPath()).thenReturn(NODE_PATH);
-
-        assertFalse(grantsAdministration(aggregateOnly, "a caller the template would refuse"));
-    }
-
     @Test
     public void aCallerNotHoldingThePermissionIsRefused() {
         assertFalse(grantsAdministration(node(false), "an editor"));
@@ -111,7 +99,7 @@ public class UserGroupProviderAdminFlowTest {
         RenderContext studio = mock(RenderContext.class);
         when(studio.getEditModeConfigName()).thenReturn("studiomode");
 
-        assertEquals(PROVIDER_KEY, handler.resolveProviderKey(PROVIDER_KEY, studio));
+        assertTrue(handler.isAdministrationGranted(studio));
     }
 
     /** The exemption is that one mode and no other: any other mode falls through to the requirement. */
@@ -120,12 +108,80 @@ public class UserGroupProviderAdminFlowTest {
         RenderContext editMode = mock(RenderContext.class);
         when(editMode.getEditModeConfigName()).thenReturn("editmode");
 
-        assertNull(handler.resolveProviderKey(PROVIDER_KEY, editMode));
+        assertFalse(handler.isAdministrationGranted(editMode));
+    }
+
+    /**
+     * Covers the mapping a direct {@code grantsAdministration} call skips: render context to main-resource
+     * node to caller. This is the case a deny-all mutation of {@code isAdministrationGranted} — pinning the
+     * node to null — makes fail, which the direct-call tests do not catch.
+     */
+    @Test
+    public void aGrantedCallerReachesTheScreen() {
+        JCRNodeWrapper node = mock(JCRNodeWrapper.class);
+        when(node.hasPermission("adminUsers")).thenReturn(true);
+        Resource mainResource = mock(Resource.class);
+        when(mainResource.getNode()).thenReturn(node);
+        JahiaUser user = mock(JahiaUser.class);
+        when(user.getName()).thenReturn("an administrator");
+        RenderContext renderContext = mock(RenderContext.class);
+        when(renderContext.getEditModeConfigName()).thenReturn("editmode");
+        when(renderContext.getMainResource()).thenReturn(mainResource);
+        when(renderContext.getUser()).thenReturn(user);
+
+        assertTrue(handler.isAdministrationGranted(renderContext));
     }
 
     @Test
-    public void noRenderContextLeavesTheFormsWithNoProviderToLookUp() {
-        assertNull(handler.resolveProviderKey(PROVIDER_KEY, null));
+    public void aRefusedCallerDoesNotReachTheScreen() {
+        JCRNodeWrapper node = mock(JCRNodeWrapper.class);
+        when(node.hasPermission("adminUsers")).thenReturn(false);
+        when(node.getPath()).thenReturn(NODE_PATH);
+        Resource mainResource = mock(Resource.class);
+        when(mainResource.getNode()).thenReturn(node);
+        JahiaUser user = mock(JahiaUser.class);
+        when(user.getName()).thenReturn("an editor");
+        RenderContext renderContext = mock(RenderContext.class);
+        when(renderContext.getEditModeConfigName()).thenReturn("editmode");
+        when(renderContext.getMainResource()).thenReturn(mainResource);
+        when(renderContext.getUser()).thenReturn(user);
+
+        assertFalse(handler.isAdministrationGranted(renderContext));
+    }
+
+    /**
+     * The requirement is evaluated on the same resource {@code TemplatePermissionCheckFilter} uses — the AJAX
+     * resource when the render has one — so the two enforcement points cannot disagree on an AJAX render.
+     * Here the caller holds the permission on the AJAX node but not the main node; using the main node would
+     * refuse a caller the template admitted.
+     */
+    @Test
+    public void theAjaxResourceIsPreferredOverTheMainResource() {
+        JCRNodeWrapper ajaxNode = mock(JCRNodeWrapper.class);
+        when(ajaxNode.hasPermission("adminUsers")).thenReturn(true);
+        Resource ajaxResource = mock(Resource.class);
+        when(ajaxResource.getNode()).thenReturn(ajaxNode);
+
+        JCRNodeWrapper mainNode = mock(JCRNodeWrapper.class);
+        when(mainNode.hasPermission("adminUsers")).thenReturn(false);
+        when(mainNode.getPath()).thenReturn(NODE_PATH);
+        Resource mainResource = mock(Resource.class);
+        when(mainResource.getNode()).thenReturn(mainNode);
+
+        JahiaUser user = mock(JahiaUser.class);
+        when(user.getName()).thenReturn("an administrator");
+        RenderContext renderContext = mock(RenderContext.class);
+        when(renderContext.getEditModeConfigName()).thenReturn("editmode");
+        when(renderContext.getAjaxResource()).thenReturn(ajaxResource);
+        when(renderContext.getMainResource()).thenReturn(mainResource);
+        when(renderContext.getUser()).thenReturn(user);
+
+        assertTrue(handler.isAdministrationGranted(renderContext));
+    }
+
+    @Test
+    public void noRenderContextFailsClosed() {
+        assertFalse(handler.isAdministrationGranted(null));
     }
 
     @Test
