@@ -44,6 +44,7 @@
 package org.jahia.test.external.users;
 
 import org.apache.commons.lang.StringUtils;
+import org.jahia.api.Constants;
 import org.jahia.services.content.*;
 import org.jahia.services.content.decorator.JCRGroupNode;
 import org.jahia.services.content.decorator.JCRUserNode;
@@ -211,7 +212,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
                     }
                 });
         // Creating the folder is what the external user must be able to do, so this part stays her own session.
-        final String folderPath = JCRTemplate.getInstance().doExecute("tata", null, "default", null, new JCRCallback<String>() {
+        final String folderPath = JCRTemplate.getInstance().doExecute("tata", null, Constants.EDIT_WORKSPACE, null, new JCRCallback<String>() {
             @Override
             public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                 JCRUserNode tata = jahiaUserManagerService.lookupUser("tata", jcrSessionWrapper);
@@ -249,7 +250,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
         assertTrue(jahiaGroupManagerService.isMember("tata", JahiaGroupManagerService.SITE_PRIVILEGED_GROUPNAME, "systemsite"));
 
         // tata is owner, should be able to jcr:write on first folder, but not second one because inheritance is broken
-        JCRTemplate.getInstance().doExecute("tata", null, "default", null, new JCRCallback<String>() {
+        JCRTemplate.getInstance().doExecute("tata", null, Constants.EDIT_WORKSPACE, null, new JCRCallback<String>() {
             @Override
             public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                 JCRUserNode tata = jahiaUserManagerService.lookupUser("tata", jcrSessionWrapper);
@@ -260,7 +261,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
             }
         });
 
-        JCRTemplate.getInstance().doExecute("titi", null, "default", null, new JCRCallback<Object>() {
+        JCRTemplate.getInstance().doExecute("titi", null, Constants.EDIT_WORKSPACE, null, new JCRCallback<Object>() {
             @Override
             public Object doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                 assertTrue(checkPermission(jcrSessionWrapper, folderPath, "jcr:read_live"));
@@ -270,7 +271,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
             }
         });
 
-        JCRTemplate.getInstance().doExecute("yaya", null, "default", null, new JCRCallback<Object>() {
+        JCRTemplate.getInstance().doExecute("yaya", null, Constants.EDIT_WORKSPACE, null, new JCRCallback<Object>() {
             @Override
             public Object doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                 assertTrue(checkPermission(jcrSessionWrapper, folderPath, "jcr:read"));
@@ -280,7 +281,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
             }
         });
 
-        JCRTemplate.getInstance().doExecute("tete", null, "default", null, new JCRCallback<Object>() {
+        JCRTemplate.getInstance().doExecute("tete", null, Constants.EDIT_WORKSPACE, null, new JCRCallback<Object>() {
             @Override
             public Object doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                 assertTrue(checkPermission(jcrSessionWrapper, folderPath, "jcr:write"));
@@ -304,7 +305,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
         // todo: BACKLOG-5678 to fix the following failing test
         //assertFalse(jahiaGroupManagerService.isMember("tata", JahiaGroupManagerService.SITE_PRIVILEGED_GROUPNAME, "systemsite"));
 
-        JCRTemplate.getInstance().doExecute("tete", null, "default", null, new JCRCallback<Object>() {
+        JCRTemplate.getInstance().doExecute("tete", null, Constants.EDIT_WORKSPACE, null, new JCRCallback<Object>() {
             @Override
             public Object doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                 assertFalse(checkPermission(jcrSessionWrapper, folderPath, "jcr:write"));
