@@ -44,6 +44,7 @@
 package org.jahia.test.external.users;
 
 import org.apache.commons.lang.StringUtils;
+import org.jahia.api.Constants;
 import org.jahia.services.content.*;
 import org.jahia.services.content.decorator.JCRGroupNode;
 import org.jahia.services.content.decorator.JCRUserNode;
@@ -73,6 +74,9 @@ import static org.junit.Assert.*;
  * @author Quentin Lamerand
  */
 public class ExternalUsersProviderTest extends JahiaTestCase {
+
+    private static final String ROLE_EDITOR = "editor";
+    private static final String USER_TETE = "u:tete";
 
     private JahiaUserManagerService jahiaUserManagerService;
     private JahiaGroupManagerService jahiaGroupManagerService;
@@ -173,6 +177,14 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
         assertTrue("Setting a read-only property shouldn't be possible", threwException);
     }
 
+    /**
+     * Checks that ACLs set on an external user's own content are applied to the other users, including when the
+     * folder breaks inheritance and when a role is denied again.
+     * <p>
+     * The ACLs are set from a system session: writing an ACL is checked as jcr:modifyAccessControl on the node the
+     * ACL belongs to, and no shipped role carries that permission, so a user cannot set one even on content she
+     * created herself. What this test is about is the effect of the ACLs, not who may write them.
+     */
     @Test
     public void testAcls() throws RepositoryException {
         JCRTemplate.getInstance().doExecuteWithSystemSession(
@@ -185,24 +197,41 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
                         return null;
                     }
                 });
-        final String folderPath = JCRTemplate.getInstance().doExecute("tata", null, "default", null, new JCRCallback<String>() {
+        // One save per group of principals, as before: the listener that maintains the site-privileged group runs on
+        // save, and how the principals are spread over saves is what decides how it batches them.
+        JCRTemplate.getInstance().doExecuteWithSystemSession(
+                new JCRCallback<String>() {
+                    @Override
+                    public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
+                        JCRNodeWrapper systemSite = jcrSessionWrapper.getNode("/sites/systemsite");
+                        systemSite.grantRoles("u:titi", Collections.singleton(ROLE_EDITOR));
+                        systemSite.grantRoles(USER_TETE, Collections.singleton(ROLE_EDITOR));
+                        systemSite.grantRoles("u:yaya", Collections.singleton(ROLE_EDITOR));
+                        jcrSessionWrapper.save();
+                        return null;
+                    }
+                });
+        // Creating the folder is what the external user must be able to do, so this part stays her own session.
+        final String folderPath = JCRTemplate.getInstance().doExecute("tata", null, Constants.EDIT_WORKSPACE, null, new JCRCallback<String>() {
             @Override
             public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
-
-                jcrSessionWrapper.getNode("/sites/systemsite").grantRoles("u:titi", Collections.singleton("editor"));
-                jcrSessionWrapper.getNode("/sites/systemsite").grantRoles("u:tete", Collections.singleton("editor"));
-                jcrSessionWrapper.getNode("/sites/systemsite").grantRoles("u:yaya", Collections.singleton("editor"));
-                jcrSessionWrapper.save();
-
                 JCRUserNode tata = jahiaUserManagerService.lookupUser("tata", jcrSessionWrapper);
                 JCRNodeWrapper folder = tata.addNode("tata_folder", "jnt:folder");
-                folder.grantRoles("u:titi", Collections.singleton("reader"));
-                folder.grantRoles("u:tete", Collections.singleton("editor"));
-
                 jcrSessionWrapper.save();
                 return folder.getPath();
             }
         });
+        JCRTemplate.getInstance().doExecuteWithSystemSession(
+                new JCRCallback<String>() {
+                    @Override
+                    public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
+                        JCRNodeWrapper folder = jcrSessionWrapper.getNode(folderPath);
+                        folder.grantRoles("u:titi", Collections.singleton("reader"));
+                        folder.grantRoles(USER_TETE, Collections.singleton(ROLE_EDITOR));
+                        jcrSessionWrapper.save();
+                        return null;
+                    }
+                });
 
         JCRTemplate.getInstance().doExecuteWithSystemSession(
                 new JCRCallback<String>() {
@@ -221,7 +250,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
         assertTrue(jahiaGroupManagerService.isMember("tata", JahiaGroupManagerService.SITE_PRIVILEGED_GROUPNAME, "systemsite"));
 
         // tata is owner, should be able to jcr:write on first folder, but not second one because inheritance is broken
-        JCRTemplate.getInstance().doExecute("tata", null, "default", null, new JCRCallback<String>() {
+        JCRTemplate.getInstance().doExecute("tata", null, Constants.EDIT_WORKSPACE, null, new JCRCallback<String>() {
             @Override
             public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                 JCRUserNode tata = jahiaUserManagerService.lookupUser("tata", jcrSessionWrapper);
@@ -232,7 +261,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
             }
         });
 
-        JCRTemplate.getInstance().doExecute("titi", null, "default", null, new JCRCallback<Object>() {
+        JCRTemplate.getInstance().doExecute("titi", null, Constants.EDIT_WORKSPACE, null, new JCRCallback<Object>() {
             @Override
             public Object doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                 assertTrue(checkPermission(jcrSessionWrapper, folderPath, "jcr:read_live"));
@@ -242,7 +271,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
             }
         });
 
-        JCRTemplate.getInstance().doExecute("yaya", null, "default", null, new JCRCallback<Object>() {
+        JCRTemplate.getInstance().doExecute("yaya", null, Constants.EDIT_WORKSPACE, null, new JCRCallback<Object>() {
             @Override
             public Object doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                 assertTrue(checkPermission(jcrSessionWrapper, folderPath, "jcr:read"));
@@ -252,7 +281,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
             }
         });
 
-        JCRTemplate.getInstance().doExecute("tete", null, "default", null, new JCRCallback<Object>() {
+        JCRTemplate.getInstance().doExecute("tete", null, Constants.EDIT_WORKSPACE, null, new JCRCallback<Object>() {
             @Override
             public Object doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                 assertTrue(checkPermission(jcrSessionWrapper, folderPath, "jcr:write"));
@@ -261,21 +290,22 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
             }
         });
 
-        JCRTemplate.getInstance().doExecute("tata", null, "default", null, new JCRCallback<String>() {
-            @Override
-            public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
-                JCRNodeWrapper folder = jcrSessionWrapper.getNode(folderPath);
-                folder.denyRoles("u:tete", Collections.singleton("editor"));
-                jcrSessionWrapper.save();
-                return null;
-            }
-        });
+        JCRTemplate.getInstance().doExecuteWithSystemSession(
+                new JCRCallback<String>() {
+                    @Override
+                    public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
+                        JCRNodeWrapper folder = jcrSessionWrapper.getNode(folderPath);
+                        folder.denyRoles(USER_TETE, Collections.singleton(ROLE_EDITOR));
+                        jcrSessionWrapper.save();
+                        return null;
+                    }
+                });
 
         // Triggered event remove user from privileged group
         // todo: BACKLOG-5678 to fix the following failing test
         //assertFalse(jahiaGroupManagerService.isMember("tata", JahiaGroupManagerService.SITE_PRIVILEGED_GROUPNAME, "systemsite"));
 
-        JCRTemplate.getInstance().doExecute("tete", null, "default", null, new JCRCallback<Object>() {
+        JCRTemplate.getInstance().doExecute("tete", null, Constants.EDIT_WORKSPACE, null, new JCRCallback<Object>() {
             @Override
             public Object doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                 assertFalse(checkPermission(jcrSessionWrapper, folderPath, "jcr:write"));
