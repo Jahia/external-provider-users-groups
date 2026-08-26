@@ -8,23 +8,35 @@
 
     <view-state id="view" >
         <on-render>
-            <evaluate expression="userGroupProviderHandler.userGroupProviders" result="requestScope.userGroupProviders"/>
-            <evaluate expression="userGroupProviderHandler.createConfigurations" result="requestScope.createConfigurations"/>
+            <evaluate expression="userGroupProviderHandler.getUserGroupProviders(externalContext.requestMap.renderContext)" result="requestScope.userGroupProviders"/>
+            <evaluate expression="userGroupProviderHandler.getCreateConfigurations(externalContext.requestMap.renderContext)" result="requestScope.createConfigurations"/>
         </on-render>
         <transition on="suspendProvider" to="suspendProvider"/>
         <transition on="resumeProvider" to="resumeProvider"/>
         <transition on="createProvider" to="createProviderForm"/>
-        <transition on="editProvider" to="editProviderForm"/>
-        <transition on="deleteProvider" to="deleteProviderForm"/>
+        <transition on="editProvider" to="editProviderAllowed"/>
+        <transition on="deleteProvider" to="deleteProviderAllowed"/>
     </view-state>
 
+    <!-- The edit and delete forms read an existing provider's stored configuration, so entry is refused
+         unless the caller may administer this screen; a refused caller is routed back to the list. -->
+    <decision-state id="editProviderAllowed">
+        <if test="userGroupProviderHandler.isAdministrationGranted(externalContext.requestMap.renderContext)"
+            then="editProviderForm" else="view"/>
+    </decision-state>
+
+    <decision-state id="deleteProviderAllowed">
+        <if test="userGroupProviderHandler.isAdministrationGranted(externalContext.requestMap.renderContext)"
+            then="deleteProviderForm" else="view"/>
+    </decision-state>
+
     <action-state id="suspendProvider">
-        <evaluate expression="userGroupProviderHandler.suspendProvider(requestParameters.providerKey, messageContext)"/>
+        <evaluate expression="userGroupProviderHandler.suspendProvider(requestParameters.providerKey, messageContext, externalContext.requestMap.renderContext)"/>
         <transition to="view"/>
     </action-state>
 
     <action-state id="resumeProvider">
-        <evaluate expression="userGroupProviderHandler.resumeProvider(requestParameters.providerKey, messageContext)"/>
+        <evaluate expression="userGroupProviderHandler.resumeProvider(requestParameters.providerKey, messageContext, externalContext.requestMap.renderContext)"/>
         <transition to="view"/>
     </action-state>
 
@@ -39,7 +51,7 @@
     </view-state>
 
     <action-state id="createProvider">
-        <evaluate expression="userGroupProviderHandler.createProvider(requestParameters, flashScope, messageContext)"/>
+        <evaluate expression="userGroupProviderHandler.createProvider(requestParameters, flashScope, messageContext, externalContext.requestMap.renderContext)"/>
         <transition on-exception="java.lang.Exception" to="createProviderForm">
           <set name="flashScope.error" value="rootCauseException"/>
         </transition>
@@ -57,7 +69,7 @@
     </view-state>
 
     <action-state id="editProvider">
-        <evaluate expression="userGroupProviderHandler.editProvider(requestParameters, flashScope, messageContext)"/>
+        <evaluate expression="userGroupProviderHandler.editProvider(requestParameters, flashScope, messageContext, externalContext.requestMap.renderContext)"/>
         <transition on-exception="java.lang.Exception" to="editProviderForm">
           <set name="flashScope.error" value="rootCauseException"/>
         </transition>
@@ -74,7 +86,7 @@
     </view-state>
 
     <action-state id="deleteProvider">
-        <evaluate expression="userGroupProviderHandler.deleteProvider(requestParameters.providerKey, requestParameters.providerClass, flashScope, messageContext)"/>
+        <evaluate expression="userGroupProviderHandler.deleteProvider(requestParameters.providerKey, requestParameters.providerClass, flashScope, messageContext, externalContext.requestMap.renderContext)"/>
         <transition on-exception="java.lang.Exception" to="deleteProviderForm">
           <set name="flashScope.error" value="rootCauseException"/>
         </transition>
