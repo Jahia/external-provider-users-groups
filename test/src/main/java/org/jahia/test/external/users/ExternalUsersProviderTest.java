@@ -74,6 +74,9 @@ import static org.junit.Assert.*;
  */
 public class ExternalUsersProviderTest extends JahiaTestCase {
 
+    private static final String ROLE_EDITOR = "editor";
+    private static final String USER_TETE = "u:tete";
+
     private JahiaUserManagerService jahiaUserManagerService;
     private JahiaGroupManagerService jahiaGroupManagerService;
 
@@ -188,11 +191,21 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
                     @Override
                     public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                         // users need to be priviliged
+                        jcrSessionWrapper.getNode("/sites/systemsite").grantRoles("u:tata", Collections.singleton("editor-in-chief"));
+                        jcrSessionWrapper.save();
+                        return null;
+                    }
+                });
+        // One save per group of principals, as before: the listener that maintains the site-privileged group runs on
+        // save, and how the principals are spread over saves is what decides how it batches them.
+        JCRTemplate.getInstance().doExecuteWithSystemSession(
+                new JCRCallback<String>() {
+                    @Override
+                    public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                         JCRNodeWrapper systemSite = jcrSessionWrapper.getNode("/sites/systemsite");
-                        systemSite.grantRoles("u:tata", Collections.singleton("editor-in-chief"));
-                        systemSite.grantRoles("u:titi", Collections.singleton("editor"));
-                        systemSite.grantRoles("u:tete", Collections.singleton("editor"));
-                        systemSite.grantRoles("u:yaya", Collections.singleton("editor"));
+                        systemSite.grantRoles("u:titi", Collections.singleton(ROLE_EDITOR));
+                        systemSite.grantRoles(USER_TETE, Collections.singleton(ROLE_EDITOR));
+                        systemSite.grantRoles("u:yaya", Collections.singleton(ROLE_EDITOR));
                         jcrSessionWrapper.save();
                         return null;
                     }
@@ -213,7 +226,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
                     public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                         JCRNodeWrapper folder = jcrSessionWrapper.getNode(folderPath);
                         folder.grantRoles("u:titi", Collections.singleton("reader"));
-                        folder.grantRoles("u:tete", Collections.singleton("editor"));
+                        folder.grantRoles(USER_TETE, Collections.singleton(ROLE_EDITOR));
                         jcrSessionWrapper.save();
                         return null;
                     }
@@ -281,7 +294,7 @@ public class ExternalUsersProviderTest extends JahiaTestCase {
                     @Override
                     public String doInJCR(JCRSessionWrapper jcrSessionWrapper) throws RepositoryException {
                         JCRNodeWrapper folder = jcrSessionWrapper.getNode(folderPath);
-                        folder.denyRoles("u:tete", Collections.singleton("editor"));
+                        folder.denyRoles(USER_TETE, Collections.singleton(ROLE_EDITOR));
                         jcrSessionWrapper.save();
                         return null;
                     }
