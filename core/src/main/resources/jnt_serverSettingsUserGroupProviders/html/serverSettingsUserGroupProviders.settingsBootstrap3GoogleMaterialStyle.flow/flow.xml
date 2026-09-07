@@ -13,13 +13,20 @@
         </on-render>
         <transition on="suspendProvider" to="suspendProvider"/>
         <transition on="resumeProvider" to="resumeProvider"/>
-        <transition on="createProvider" to="createProviderForm"/>
+        <transition on="createProvider" to="createProviderAllowed"/>
         <transition on="editProvider" to="editProviderAllowed"/>
         <transition on="deleteProvider" to="deleteProviderAllowed"/>
     </view-state>
 
-    <!-- The edit and delete forms read an existing provider's stored configuration, so entry is refused
-         unless the caller may administer this screen; a refused caller is routed back to the list. -->
+    <!-- Entry into a form is refused unless the caller may administer this screen, and a refused caller is
+         routed back to the list. The edit and delete forms read an existing provider's stored configuration,
+         and the create form carries into its render the JSP the request named, so each of the three rests on
+         the requirement rather than on the transition that reached it. -->
+    <decision-state id="createProviderAllowed">
+        <if test="userGroupProviderHandler.isAdministrationGranted(externalContext.requestMap.renderContext)"
+            then="createProviderForm" else="view"/>
+    </decision-state>
+
     <decision-state id="editProviderAllowed">
         <if test="userGroupProviderHandler.isAdministrationGranted(externalContext.requestMap.renderContext)"
             then="editProviderForm" else="view"/>

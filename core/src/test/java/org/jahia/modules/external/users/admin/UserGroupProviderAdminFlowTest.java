@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -54,6 +55,19 @@ public class UserGroupProviderAdminFlowTest {
         return node;
     }
 
+    /** A render of the given mode, whose main resource is the given node. */
+    private static RenderContext renderContext(String editModeConfigName, JCRNodeWrapper mainNode) {
+        Resource mainResource = mock(Resource.class);
+        when(mainResource.getNode()).thenReturn(mainNode);
+        JahiaUser user = mock(JahiaUser.class);
+        when(user.getName()).thenReturn("a template developer");
+        RenderContext renderContext = mock(RenderContext.class);
+        when(renderContext.getEditModeConfigName()).thenReturn(editModeConfigName);
+        when(renderContext.getMainResource()).thenReturn(mainResource);
+        when(renderContext.getUser()).thenReturn(user);
+        return renderContext;
+    }
+
     private static ParameterMap parameters() {
         return new LocalParameterMap(Collections.singletonMap("providerClass", PROVIDER_CLASS));
     }
@@ -90,25 +104,57 @@ public class UserGroupProviderAdminFlowTest {
     }
 
     /**
-     * Studio renders a module's own definitions, and core's render conditions exempt it. A render context is
-     * enough to reach the decision for this case: the exemption is answered before the main resource is read,
-     * so no {@code Resource} is needed.
+     * Studio renders a module's own definitions, and core's render conditions exempt it, so the screen lists
+     * what it has where a template developer places it. A render context is enough to reach the decision for
+     * this case: the exemption is answered before the main resource is read, so no {@code Resource} is needed.
      */
     @Test
-    public void aStudioRenderIsExempt() {
+    public void aStudioRenderStillListsWhatTheScreenHas() {
         RenderContext studio = mock(RenderContext.class);
         when(studio.getEditModeConfigName()).thenReturn("studiomode");
 
-        assertTrue(handler.isAdministrationGranted(studio));
+        assertTrue(handler.isInventoryReadable(studio));
     }
 
-    /** The exemption is that one mode and no other: any other mode falls through to the requirement. */
+    /** The exemption is that one mode and no other: any other mode lists on the requirement alone. */
     @Test
-    public void anyOtherModeIsNotExempt() {
+    public void anyOtherModeListsOnTheRequirementAlone() {
         RenderContext editMode = mock(RenderContext.class);
         when(editMode.getEditModeConfigName()).thenReturn("editmode");
 
-        assertFalse(handler.isAdministrationGranted(editMode));
+        assertFalse(handler.isInventoryReadable(editMode));
+
+        assertTrue(handler.isInventoryReadable(renderContext("editmode", node(true))));
+    }
+
+    /**
+     * The exemption stops at what the screen lists. A Studio render is admitted on a permission that says
+     * nothing about administering identity providers, so the operations are decided on the requirement in
+     * that mode as in any other. Widening the exemption back over this method turns the second assertion red.
+     */
+    @Test
+    public void aStudioRenderIsStillDecidedOnTheRequirement() {
+        assertTrue(handler.isAdministrationGranted(renderContext("studiomode", node(true))));
+
+        assertFalse(handler.isAdministrationGranted(renderContext("studiomode", node(false))));
+    }
+
+    /**
+     * The five operations in a Studio render, with no {@code ExternalUserGroupService} wired in: each is
+     * refused, and each refusal is decided before anything reaches that service. Exempting Studio here again
+     * turns this red on the unset field rather than on the assertion.
+     */
+    @Test
+    public void aStudioRenderCarriesNoneOfTheOperations() throws Exception {
+        RenderContext studio = renderContext("studiomode", node(false));
+
+        handler.createProvider(parameters(), flashScope(), messages, studio);
+        handler.editProvider(parameters(), flashScope(), messages, studio);
+        handler.deleteProvider(PROVIDER_KEY, PROVIDER_CLASS, flashScope(), messages, studio);
+        handler.suspendProvider(PROVIDER_KEY, messages, studio);
+        handler.resumeProvider(PROVIDER_KEY, messages, studio);
+
+        verify(messages, times(5)).addMessage(any(MessageResolver.class));
     }
 
     /**

@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.jahia.exceptions.JahiaException;
 import org.jahia.exceptions.JahiaInitializationException;
@@ -101,11 +102,30 @@ public class UserGroupProviderAdminFlow implements Serializable {
      * <p>
      * Studio renders module content by design, and core's render conditions exempt it for that reason. It is
      * reachable only where {@code operatingMode} is {@code development}: the controller behind
-     * {@code /cms/studio} declares {@code availableInProductionMode=false}. Applying the requirement here
-     * would leave this screen alone among its siblings in refusing the one mode a template developer places
-     * it from, and would withhold nothing anywhere the screen is actually served.
+     * {@code /cms/studio} declares {@code availableInProductionMode=false}. Withholding what this screen
+     * lists there would leave it alone among its siblings in refusing the one mode a template developer
+     * places it from, and would withhold nothing anywhere the screen is actually served.
+     * <p>
+     * The exemption stops at what the screen lists. A Studio render is admitted on {@code studioModeAccess}
+     * over {@code /modules}, a permission that says nothing about administering this instance's identity
+     * providers, so the operations and the forms that submit them are decided on the requirement in this
+     * mode as in any other.
      */
     private static final String STUDIO_MODE = "studiomode";
+
+    /**
+     * One {@code WARN} per interval, for the whole class rather than per caller or per operation.
+     * <p>
+     * A refusal is written from a path unauthenticated traffic can drive, so an unthrottled report would let
+     * the caller choose how fast this log grows. Core throttles the same class of refusal through
+     * {@code LimiterExecutor.executeOncePerInterval}, which is not in the {@code 8.2.0.4} API this module
+     * builds against; the shape is kept here instead of raising what the module requires. Every occurrence
+     * is still written at {@code DEBUG}.
+     */
+    private static final long DECLINED_LOG_INTERVAL_MS = 5L * 60 * 1000;
+
+    /** Time from which the next refusal report is allowed, in milliseconds. */
+    private static final AtomicLong nextDeclinedLogTime = new AtomicLong();
 
     @Autowired
     private transient ExternalUserGroupService externalUserGroupService;
@@ -201,7 +221,7 @@ public class UserGroupProviderAdminFlow implements Serializable {
      * @return the provider create configuration map, empty when the caller may not use this screen
      */
     public Map<String, UserGroupProviderConfiguration> getCreateConfigurations(RenderContext renderContext) {
-        if (!isAdministrationGranted(renderContext)) {
+        if (!isInventoryReadable(renderContext)) {
             return new HashMap<String, UserGroupProviderConfiguration>();
         }
 
@@ -222,7 +242,7 @@ public class UserGroupProviderAdminFlow implements Serializable {
      * @return a list of registered user/group providers, empty when the caller may not use this screen
      */
     public List<UserGroupProviderInfo> getUserGroupProviders(RenderContext renderContext) {
-        if (!isAdministrationGranted(renderContext)) {
+        if (!isInventoryReadable(renderContext)) {
             return new ArrayList<UserGroupProviderInfo>();
         }
 
@@ -337,27 +357,23 @@ public class UserGroupProviderAdminFlow implements Serializable {
     }
 
     /**
-     * Whether the caller may read or change this instance's identity providers.
+     * Whether the caller may change this instance's identity providers, or read one's stored configuration.
      * <p>
-     * {@link #STUDIO_MODE} is exempt, for the reason given there. Otherwise the requirement is evaluated on
-     * the render's resource — the AJAX resource when there is one, the main resource otherwise, the same
-     * selection {@code TemplatePermissionCheckFilter} makes — which is what an administrator role is granted
-     * on. That target is load-bearing rather than incidental. What this screen reaches belongs to the
-     * module's own services rather than to a node bound to the caller, so this resource is the one thing here
-     * on which {@code hasPermission} can express a requirement.
+     * The requirement is evaluated on the render's resource — the AJAX resource when there is one, the main
+     * resource otherwise, the same selection {@code TemplatePermissionCheckFilter} makes — which is what an
+     * administrator role is granted on. That target is load-bearing rather than incidental. What this screen
+     * reaches belongs to the module's own services rather than to a node bound to the caller, so this
+     * resource is the one thing here on which {@code hasPermission} can express a requirement.
      *
-     * Called from the flow: the mutating transitions gate their write on it, and the edit and delete forms
-     * gate their entry on it through a decision-state, so an unauthorized caller is never served a form that
-     * would read an existing provider's stored configuration.
+     * Called from the flow: each of the five transitions gates its write on it, and each of the three forms
+     * gates its entry on it through a decision-state, so an unauthorized caller is never served a form that
+     * reads an existing provider's stored configuration or that includes the JSP its own request named.
+     * {@link #STUDIO_MODE} is not exempt here, for the reason given there.
      *
      * @param renderContext the context of the render the transition was submitted from
-     * @return {@code true} when the caller holds {@link #REQUIRED_PERMISSION} on the main resource
+     * @return {@code true} when the caller holds {@link #REQUIRED_PERMISSION} on that resource
      */
     public boolean isAdministrationGranted(RenderContext renderContext) {
-        if (renderContext != null && STUDIO_MODE.equals(renderContext.getEditModeConfigName())) {
-            return true;
-        }
-
         Resource resource = null;
         if (renderContext != null) {
             // Same resource TemplatePermissionCheckFilter evaluates its requirement on: the AJAX resource
@@ -369,6 +385,23 @@ public class UserGroupProviderAdminFlow implements Serializable {
         JahiaUser user = renderContext != null ? renderContext.getUser() : null;
         return grantsAdministration(resource != null ? resource.getNode() : null,
                 user != null ? user.getName() : null);
+    }
+
+    /**
+     * Whether the render may list what this instance has: the registered providers, and the kinds of provider
+     * that can be created. Weaker than {@link #isAdministrationGranted(RenderContext)} by the
+     * {@link #STUDIO_MODE} exemption alone, and package-private so that the two answers are pinned apart by
+     * the unit suite.
+     *
+     * @param renderContext the context of the render this screen is being served from
+     * @return {@code true} when the render is a Studio render, or when the caller holds the requirement
+     */
+    boolean isInventoryReadable(RenderContext renderContext) {
+        return isStudioRender(renderContext) || isAdministrationGranted(renderContext);
+    }
+
+    private static boolean isStudioRender(RenderContext renderContext) {
+        return renderContext != null && STUDIO_MODE.equals(renderContext.getEditModeConfigName());
     }
 
     /**
@@ -408,11 +441,22 @@ public class UserGroupProviderAdminFlow implements Serializable {
      * The message names the screen, not the condition: the same text stands whether the caller lacked the
      * permission or the render had no node to evaluate it against. The log line names the permission and
      * nothing caller-controlled; {@code DEBUG} on this class identifies the caller and the node.
+     * <p>
+     * The caller is told of every refusal. The operator is told once per {@link #DECLINED_LOG_INTERVAL_MS},
+     * for the reason given there.
      */
     private static void declined(MessageContext messages) {
-        logger.warn("A user and group provider operation was not carried out: the caller does not hold {} on the"
-                + " node the screen was rendered against. Enable DEBUG on this class for the caller and the node.",
-                REQUIRED_PERMISSION);
+        long now = System.currentTimeMillis();
+        long allowedFrom = nextDeclinedLogTime.get();
+        if (now >= allowedFrom && nextDeclinedLogTime.compareAndSet(allowedFrom, now + DECLINED_LOG_INTERVAL_MS)) {
+            logger.warn("A user and group provider operation was not carried out: the caller does not hold {} on"
+                    + " the node the screen was rendered against. Enable DEBUG on this class for the caller and"
+                    + " the node, and for every occurrence. (silent for {}min)", REQUIRED_PERMISSION,
+                    DECLINED_LOG_INTERVAL_MS / 60000);
+        } else {
+            logger.debug("A user and group provider operation was not carried out: the caller does not hold {}"
+                    + " on the node the screen was rendered against", REQUIRED_PERMISSION);
+        }
         messages.addMessage(new MessageBuilder().error().code("label.userGroupProvider.notPermitted").build());
     }
 
