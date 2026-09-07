@@ -411,8 +411,8 @@ public class UserGroupProviderAdminFlow implements Serializable {
      * every operation this screen offers is an administration capability.
      * <p>
      * Reports at {@code DEBUG}: this runs on every render, so a louder level would make the log grow with
-     * ordinary traffic. The one report an operator acts on is written once per attempted operation, by
-     * {@link #declined(MessageContext)}.
+     * ordinary traffic. The report an operator acts on is written by {@link #declined(MessageContext)}, for
+     * a refused transition and at the interval given there.
      *
      * @param contextNode the node the requirement is evaluated on, or {@code null} when there is none
      * @param callerName the name of the caller, for the debug report only
@@ -442,8 +442,9 @@ public class UserGroupProviderAdminFlow implements Serializable {
      * permission or the render had no node to evaluate it against. The log line names the permission and
      * nothing caller-controlled; {@code DEBUG} on this class identifies the caller and the node.
      * <p>
-     * The caller is told of every refusal. The operator is told once per {@link #DECLINED_LOG_INTERVAL_MS},
-     * for the reason given there.
+     * Called from the five transitions, and not from the decision-state a refused form entry takes: an
+     * entry that never claimed to change anything routes back to the list. The caller is told of every
+     * refusal; the operator is told once per {@link #DECLINED_LOG_INTERVAL_MS}, for the reason given there.
      */
     private static void declined(MessageContext messages) {
         long now = System.currentTimeMillis();
