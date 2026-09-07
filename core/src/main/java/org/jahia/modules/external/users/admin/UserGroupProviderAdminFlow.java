@@ -262,7 +262,6 @@ public class UserGroupProviderAdminFlow implements Serializable {
             UserGroupProviderConfiguration configuration = configurations.get(userGroupProviderClass);
             if (configuration != null) {
                 providerInfo.setEditSupported(configuration.isEditSupported());
-                providerInfo.setEditJSP(configuration.getEditJSP());
                 providerInfo.setDeleteSupported(configuration.isDeleteSupported());
             }
             String siteKey = entry.getValue().getSiteKey();
@@ -279,6 +278,50 @@ public class UserGroupProviderAdminFlow implements Serializable {
             infos.add(providerInfo);
         }
         return infos;
+    }
+
+    /**
+     * The view a provider configuration declares for its create form.
+     * <p>
+     * Called from the flow with the provider class the request names, and it answers with the path that
+     * class's own registered configuration declares. The path itself therefore never travels through the
+     * request: a caller chooses which kind of provider to create, and the server decides what that renders.
+     *
+     * @param providerClass the provider class the request names
+     * @return the create view declared for that class, or {@code null} when nothing declares one
+     */
+    public String resolveCreateJSP(String providerClass) {
+        UserGroupProviderConfiguration configuration =
+                declaredBy(externalUserGroupService.getProviderConfigurations(), providerClass);
+        return configuration != null ? configuration.getCreateJSP() : null;
+    }
+
+    /**
+     * The name a provider configuration declares for itself, which is what the create form's heading
+     * shows. Resolved for the same reason the views are: the heading renders it, so a request naming it
+     * would decide part of the page.
+     *
+     * @param providerClass the provider class the request names
+     * @return the name declared for that class, or {@code null} when nothing declares one — the heading
+     *         has its own fallback for that
+     */
+    public String resolveProviderName(String providerClass) {
+        UserGroupProviderConfiguration configuration =
+                declaredBy(externalUserGroupService.getProviderConfigurations(), providerClass);
+        return configuration != null ? configuration.getName() : null;
+    }
+
+    /**
+     * The view a provider configuration declares for its edit form, resolved the way
+     * {@link #resolveCreateJSP(String)} resolves the create one.
+     *
+     * @param providerClass the provider class the request names
+     * @return the edit view declared for that class, or {@code null} when nothing declares one
+     */
+    public String resolveEditJSP(String providerClass) {
+        UserGroupProviderConfiguration configuration =
+                declaredBy(externalUserGroupService.getProviderConfigurations(), providerClass);
+        return configuration != null ? configuration.getEditJSP() : null;
     }
 
     /**
@@ -320,6 +363,15 @@ public class UserGroupProviderAdminFlow implements Serializable {
         }
 
         addNoteForCluster(messages);
+    }
+
+    /**
+     * Visible for testing: the provider service the resolvers read. Production wiring is the
+     * {@code @Autowired} field, which Spring sets directly; this exists so that a unit test can reach
+     * {@link #resolveCreateJSP(String)} without a container.
+     */
+    void setExternalUserGroupService(ExternalUserGroupService externalUserGroupService) {
+        this.externalUserGroupService = externalUserGroupService;
     }
 
     @Autowired
@@ -402,6 +454,26 @@ public class UserGroupProviderAdminFlow implements Serializable {
 
     private static boolean isStudioRender(RenderContext renderContext) {
         return renderContext != null && STUDIO_MODE.equals(renderContext.getEditModeConfigName());
+    }
+
+    /**
+     * Visible for testing: the registered configuration for a provider class, or {@code null}.
+     * <p>
+     * Fails closed on a class nothing is registered for. A form with no view renders no fields, which is
+     * the safe end of that branch: the alternative — falling back to a path the request carried — is the
+     * thing resolving this server-side exists to remove.
+     *
+     * @param configurations the registered provider configurations, keyed by provider class
+     * @param providerClass the provider class the request names
+     * @return the configuration registered for it, or {@code null} when there is none
+     */
+    static UserGroupProviderConfiguration declaredBy(
+            Map<String, UserGroupProviderConfiguration> configurations, String providerClass) {
+        if (configurations == null || providerClass == null) {
+            return null;
+        }
+
+        return configurations.get(providerClass);
     }
 
     /**

@@ -1,7 +1,10 @@
 package org.jahia.modules.external.users.admin;
 
+import static org.jahia.modules.external.users.admin.UserGroupProviderAdminFlow.declaredBy;
 import static org.jahia.modules.external.users.admin.UserGroupProviderAdminFlow.grantsAdministration;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -9,6 +12,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.jahia.modules.external.users.ExternalUserGroupService;
+import org.jahia.modules.external.users.UserGroupProviderConfiguration;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.render.RenderContext;
 import org.jahia.services.render.Resource;
@@ -23,6 +28,7 @@ import org.springframework.webflow.core.collection.MutableAttributeMap;
 import org.springframework.webflow.core.collection.ParameterMap;
 
 import java.util.Collections;
+import java.util.Map;
 
 /**
  * The screen's operations are served to a caller who administers the server, and to no one else.
@@ -37,11 +43,22 @@ import java.util.Collections;
  * {@code RenderContext} to cover the mapping from that context to the node and caller — the step a direct
  * call skips. Mocking {@code Resource} pulls in Guava (its class initialiser needs it), which is why the
  * test scope carries that dependency.
+ * <p>
+ * The view-resolution cases are the other half, and they are the ones that DO wire a provider service: each
+ * form's view has to come from the registered configuration of the provider class the request names, so the
+ * cases assert both views against it and assert what an unregistered class, a null class and an absent
+ * registry resolve to.
  */
 public class UserGroupProviderAdminFlowTest {
 
     private static final String PROVIDER_KEY = "ldap.corporate";
     private static final String PROVIDER_CLASS = "org.jahia.services.usermanager.ldap.LDAPUserGroupProvider";
+    // Two paths that differ, and neither is a real module's: what matters is that the wrong one
+    // would be visible. A real provider module may well declare the SAME view for both forms — the
+    // ldap module does — which is exactly the case that would hide an exchange of the two getters.
+    private static final String PROVIDER_NAME = "Example directory";
+    private static final String CREATE_VIEW = "/modules/example/createProvider.jsp";
+    private static final String EDIT_VIEW = "/modules/example/editProvider.jsp";
     private static final String NODE_PATH = "/sites/example/home/main/providers";
 
     private UserGroupProviderAdminFlow handler;
@@ -80,6 +97,63 @@ public class UserGroupProviderAdminFlowTest {
     public void setUp() {
         handler = new UserGroupProviderAdminFlow();
         messages = mock(MessageContext.class);
+    }
+
+    /** Registers one provider configuration, declaring a view for each form. */
+    private Map<String, UserGroupProviderConfiguration> registered() {
+        UserGroupProviderConfiguration configuration = mock(UserGroupProviderConfiguration.class);
+        when(configuration.getName()).thenReturn(PROVIDER_NAME);
+        when(configuration.getCreateJSP()).thenReturn(CREATE_VIEW);
+        when(configuration.getEditJSP()).thenReturn(EDIT_VIEW);
+        Map<String, UserGroupProviderConfiguration> configurations =
+                Collections.singletonMap(PROVIDER_CLASS, configuration);
+        ExternalUserGroupService service = mock(ExternalUserGroupService.class);
+        when(service.getProviderConfigurations()).thenReturn(configurations);
+        handler.setExternalUserGroupService(service);
+        return configurations;
+    }
+
+    /**
+     * Everything the forms render about a provider kind — each form's view, and the name the create
+     * heading shows — is what that provider class's own registered configuration declares. All three are
+     * asserted, so exchanging any two of the getters turns the suite red: the values differ by one word
+     * and the wrong one still renders a form.
+     */
+    @Test
+    public void whatTheFormsRenderComesFromTheRegisteredConfiguration() {
+        registered();
+
+        assertEquals(CREATE_VIEW, handler.resolveCreateJSP(PROVIDER_CLASS));
+        assertEquals(EDIT_VIEW, handler.resolveEditJSP(PROVIDER_CLASS));
+        assertEquals(PROVIDER_NAME, handler.resolveProviderName(PROVIDER_CLASS));
+    }
+
+    /**
+     * A provider class nothing registers resolves to no view at all. That is the case a request naming
+     * its own path used to reach, and the forms render no fields rather than including what it named.
+     */
+    @Test
+    public void aProviderClassNothingRegistersResolvesToNoView() {
+        registered();
+
+        assertNull(handler.resolveCreateJSP("org.example.NotRegistered"));
+        assertNull(handler.resolveEditJSP("org.example.NotRegistered"));
+        assertNull(handler.resolveProviderName("org.example.NotRegistered"));
+        assertNull(handler.resolveCreateJSP(null));
+        assertNull(handler.resolveEditJSP(null));
+        assertNull(handler.resolveProviderName(null));
+    }
+
+    /** The lookup itself, including the inputs the flow can hand it before anything is registered. */
+    @Test
+    public void theLookupFailsClosedOnEveryAbsentInput() {
+        Map<String, UserGroupProviderConfiguration> configurations = registered();
+
+        assertEquals(configurations.get(PROVIDER_CLASS), declaredBy(configurations, PROVIDER_CLASS));
+        assertNull(declaredBy(configurations, "org.example.NotRegistered"));
+        assertNull(declaredBy(configurations, null));
+        assertNull(declaredBy(null, PROVIDER_CLASS));
+        assertNull(declaredBy(Collections.emptyMap(), PROVIDER_CLASS));
     }
 
     @Test

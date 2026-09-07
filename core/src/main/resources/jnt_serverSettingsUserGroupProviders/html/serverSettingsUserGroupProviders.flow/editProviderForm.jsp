@@ -30,9 +30,10 @@
 <form style="margin: 0;" action="${flowExecutionUrl}" method="post" onsubmit="workInProgress('${i18nWaiting}')">
     <input type="hidden" name="providerKey" value="${providerKey}"/>
     <input type="hidden" name="providerClass" value="${providerClass}"/>
-    <input type="hidden" name="editJSP" value="${editJSP}"/>
 
-    <jsp:include page="${editJSP}"/>
+    <c:if test="${not empty editJSP}">
+        <jsp:include page="${editJSP}"/>
+    </c:if>
 
     <div>
         <button class="btn btn-primary" type="submit" name="_eventId_save">
