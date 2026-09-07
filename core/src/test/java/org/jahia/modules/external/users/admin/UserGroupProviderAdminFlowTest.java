@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -99,9 +100,18 @@ public class UserGroupProviderAdminFlowTest {
         messages = mock(MessageContext.class);
     }
 
-    /** Registers one provider configuration, declaring a view for each form. */
+    /** Registers one provider configuration that declares a view for each form, and supports both. */
     private Map<String, UserGroupProviderConfiguration> registered() {
+        return registered(true, true, true);
+    }
+
+    /** The same, with each operation's support flag chosen — the flags the list reads before it offers a button. */
+    private Map<String, UserGroupProviderConfiguration> registered(boolean createSupported, boolean editSupported,
+            boolean deleteSupported) {
         UserGroupProviderConfiguration configuration = mock(UserGroupProviderConfiguration.class);
+        when(configuration.isCreateSupported()).thenReturn(createSupported);
+        when(configuration.isEditSupported()).thenReturn(editSupported);
+        when(configuration.isDeleteSupported()).thenReturn(deleteSupported);
         when(configuration.getName()).thenReturn(PROVIDER_NAME);
         when(configuration.getCreateJSP()).thenReturn(CREATE_VIEW);
         when(configuration.getEditJSP()).thenReturn(EDIT_VIEW);
@@ -142,6 +152,59 @@ public class UserGroupProviderAdminFlowTest {
         assertNull(handler.resolveCreateJSP(null));
         assertNull(handler.resolveEditJSP(null));
         assertNull(handler.resolveProviderName(null));
+    }
+
+    /**
+     * A kind that declares a view it does not support resolves to none, so a resolver answers for exactly
+     * the kinds the list that leads to it offers a button for. The name still resolves: it is the heading's
+     * label, not a form, and the heading has its own fallback.
+     */
+    @Test
+    public void aViewTheKindDoesNotSupportResolvesToNone() {
+        registered(false, false, false);
+
+        assertNull(handler.resolveCreateJSP(PROVIDER_CLASS));
+        assertNull(handler.resolveEditJSP(PROVIDER_CLASS));
+        assertEquals(PROVIDER_NAME, handler.resolveProviderName(PROVIDER_CLASS));
+    }
+
+    /**
+     * The three transitions that WRITE refuse a kind nothing registers, rather than dereferencing the
+     * configuration they did not find. Driven with no provider service reachable for that class, so each
+     * case passes only while the refusal precedes the call.
+     */
+    @Test
+    public void aWriteNamingAnUnregisteredKindIsRefused() throws Exception {
+        registered();
+        ParameterMap unregistered = new LocalParameterMap(
+                Collections.singletonMap("providerClass", "org.example.NotRegistered"));
+
+        handler.createProvider(unregistered, flashScope(), messages, renderContext("editmode", node(true)));
+        handler.editProvider(unregistered, flashScope(), messages, renderContext("editmode", node(true)));
+        handler.deleteProvider(PROVIDER_KEY, "org.example.NotRegistered", flashScope(), messages,
+                renderContext("editmode", node(true)));
+
+        verify(messages, times(3)).addMessage(any(MessageResolver.class));
+    }
+
+    /**
+     * A write is refused when the kind is registered and says it does not offer that operation — the same
+     * flags the resolvers read, so the two halves answer alike. The configuration is asserted untouched,
+     * which is the part that matters: the refusal has to precede the call, not follow it.
+     */
+    @Test
+    public void aWriteTheKindDoesNotOfferIsRefused() throws Exception {
+        UserGroupProviderConfiguration configuration = registered(false, false, false).get(PROVIDER_CLASS);
+
+        handler.createProvider(parameters(), flashScope(), messages, renderContext("editmode", node(true)));
+        handler.editProvider(parameters(), flashScope(), messages, renderContext("editmode", node(true)));
+        handler.deleteProvider(PROVIDER_KEY, PROVIDER_CLASS, flashScope(), messages,
+                renderContext("editmode", node(true)));
+
+        verify(messages, times(3)).addMessage(any(MessageResolver.class));
+        verify(configuration, never()).create(any(), any());
+        verify(configuration, never()).edit(any(), any(), any());
+        verify(configuration, never()).delete(any(), any());
     }
 
     /** The lookup itself, including the inputs the flow can hand it before anything is registered. */

@@ -135,7 +135,12 @@ public class UserGroupProviderAdminFlow implements Serializable {
     private transient JCRStoreService jcrStoreService;
 
     /**
-     * Performs the creation of the provider.
+     * Performs the creation of the provider, or carries nothing out and reports why.
+     * <p>
+     * Three states end it early, asked in this order: the caller does not hold the requirement
+     * ({@link #isAdministrationGranted(RenderContext)}), nothing is registered for the provider class the
+     * request names, or that class says it does not support creation. The list this transition is reached
+     * from offers no button in the last two, so a request in either state did not come from it.
      *
      * @param parameters
      *            flow parameter map
@@ -153,14 +158,26 @@ public class UserGroupProviderAdminFlow implements Serializable {
             return;
         }
 
-        Map<String, UserGroupProviderConfiguration> configurations = externalUserGroupService.getProviderConfigurations();
-        String providerClass = parameters.get("providerClass");
-        String providerKey = configurations.get(providerClass).create(parameters.asMap(), flashScope.asMap()) + ".users";
+        UserGroupProviderConfiguration configuration = declaredBy(
+                externalUserGroupService.getProviderConfigurations(), parameters.get("providerClass"));
+        if (configuration == null) {
+            unknownProviderKind(messages);
+            return;
+        }
+        if (!configuration.isCreateSupported()) {
+            unsupportedOperation(messages);
+            return;
+        }
+
+        String providerKey = configuration.create(parameters.asMap(), flashScope.asMap()) + ".users";
         wait(providerKey, true, messages);
     }
 
     /**
-     * Performs deletion of the provider
+     * Performs deletion of the provider, or carries nothing out and reports why.
+     * <p>
+     * Ends early in the three states {@link #createProvider(ParameterMap, MutableAttributeMap, MessageContext, RenderContext)}
+     * describes, with {@code isDeleteSupported} in place of the creation flag.
      *
      * @param providerKey
      *            the key of the provider
@@ -180,14 +197,27 @@ public class UserGroupProviderAdminFlow implements Serializable {
             return;
         }
 
-        Map<String, UserGroupProviderConfiguration> configurations = externalUserGroupService.getProviderConfigurations();
-        configurations.get(providerClass).delete(providerKey, flashScope.asMap());
+        UserGroupProviderConfiguration configuration =
+                declaredBy(externalUserGroupService.getProviderConfigurations(), providerClass);
+        if (configuration == null) {
+            unknownProviderKind(messages);
+            return;
+        }
+        if (!configuration.isDeleteSupported()) {
+            unsupportedOperation(messages);
+            return;
+        }
+
+        configuration.delete(providerKey, flashScope.asMap());
         providerKey += ".users";
         wait(providerKey, false, messages);
     }
 
     /**
-     * Performs the edition of the provider configuration.
+     * Performs the edition of the provider configuration, or carries nothing out and reports why.
+     * <p>
+     * Ends early in the three states {@link #createProvider(ParameterMap, MutableAttributeMap, MessageContext, RenderContext)}
+     * describes, with {@code isEditSupported} in place of the creation flag.
      *
      * @param parameters
      *            flow parameter map
@@ -205,10 +235,19 @@ public class UserGroupProviderAdminFlow implements Serializable {
             return;
         }
 
-        Map<String, UserGroupProviderConfiguration> configurations = externalUserGroupService.getProviderConfigurations();
         String providerKey = parameters.get("providerKey");
-        String providerClass = parameters.get("providerClass");
-        configurations.get(providerClass).edit(providerKey, parameters.asMap(), flashScope.asMap());
+        UserGroupProviderConfiguration configuration = declaredBy(
+                externalUserGroupService.getProviderConfigurations(), parameters.get("providerClass"));
+        if (configuration == null) {
+            unknownProviderKind(messages);
+            return;
+        }
+        if (!configuration.isEditSupported()) {
+            unsupportedOperation(messages);
+            return;
+        }
+
+        configuration.edit(providerKey, parameters.asMap(), flashScope.asMap());
         providerKey += ".users";
         wait(providerKey, true, messages);
     }
@@ -286,6 +325,9 @@ public class UserGroupProviderAdminFlow implements Serializable {
      * Called from the flow with the provider class the request names, and it answers with the path that
      * class's own registered configuration declares. The path itself therefore never travels through the
      * request: a caller chooses which kind of provider to create, and the server decides what that renders.
+     * <p>
+     * A kind that declares a view it does not support resolves to none, so this answers for exactly the
+     * kinds {@link #getCreateConfigurations(RenderContext)} keeps — the list that leads to this form.
      *
      * @param providerClass the provider class the request names
      * @return the create view declared for that class, or {@code null} when nothing declares one
@@ -293,7 +335,7 @@ public class UserGroupProviderAdminFlow implements Serializable {
     public String resolveCreateJSP(String providerClass) {
         UserGroupProviderConfiguration configuration =
                 declaredBy(externalUserGroupService.getProviderConfigurations(), providerClass);
-        return configuration != null ? configuration.getCreateJSP() : null;
+        return configuration != null && configuration.isCreateSupported() ? configuration.getCreateJSP() : null;
     }
 
     /**
@@ -313,7 +355,8 @@ public class UserGroupProviderAdminFlow implements Serializable {
 
     /**
      * The view a provider configuration declares for its edit form, resolved the way
-     * {@link #resolveCreateJSP(String)} resolves the create one.
+     * {@link #resolveCreateJSP(String)} resolves the create one, and gated on the same flag the list
+     * reads before it offers an Edit button.
      *
      * @param providerClass the provider class the request names
      * @return the edit view declared for that class, or {@code null} when nothing declares one
@@ -321,7 +364,7 @@ public class UserGroupProviderAdminFlow implements Serializable {
     public String resolveEditJSP(String providerClass) {
         UserGroupProviderConfiguration configuration =
                 declaredBy(externalUserGroupService.getProviderConfigurations(), providerClass);
-        return configuration != null ? configuration.getEditJSP() : null;
+        return configuration != null && configuration.isEditSupported() ? configuration.getEditJSP() : null;
     }
 
     /**
@@ -518,6 +561,31 @@ public class UserGroupProviderAdminFlow implements Serializable {
      * entry that never claimed to change anything routes back to the list. The caller is told of every
      * refusal; the operator is told once per {@link #DECLINED_LOG_INTERVAL_MS}, for the reason given there.
      */
+    /**
+     * Reports that the kind of provider the request named does not offer the operation it asked for.
+     * <p>
+     * Distinct from {@link #unknownProviderKind(MessageContext)}: the kind is registered, and says of
+     * itself that it does not do this. The list reads the same flags before it offers a button, so this
+     * answers a request that did not come from one.
+     */
+    private static void unsupportedOperation(MessageContext messages) {
+        logger.debug("A user and group provider operation was not offered by the provider kind the request named");
+        messages.addMessage(new MessageBuilder().error().code("label.userGroupProvider.unsupportedOperation").build());
+    }
+
+    /**
+     * Reports that the request named a kind of provider nothing is registered for.
+     * <p>
+     * Distinct from {@link #declined(MessageContext)}: that one answers a caller who may not use the
+     * screen, this one a caller who may. Reports at {@code DEBUG} and names nothing caller-controlled —
+     * the class the request named is caller-controlled, and the operator's own registry is what says
+     * which kinds exist.
+     */
+    private static void unknownProviderKind(MessageContext messages) {
+        logger.debug("A user and group provider operation named a provider kind with no registered configuration");
+        messages.addMessage(new MessageBuilder().error().code("label.userGroupProvider.unknownProviderClass").build());
+    }
+
     private static void declined(MessageContext messages) {
         long now = System.currentTimeMillis();
         long allowedFrom = nextDeclinedLogTime.get();
