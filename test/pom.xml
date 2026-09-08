@@ -67,7 +67,7 @@
     <properties>
         <jahia-depends>default, external-provider-users-groups</jahia-depends>
         <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
-        <jahia-module-signature>MC0CFA7Vy0/Lmxpaws6wZvP0cOcot1cmAhUAkGhkHaW12W3hTY7ykLxalV16OMw=</jahia-module-signature>
+        <jahia-module-signature>MCwCFHLsPN1rzoc1qife7kZmWueUBomkAhQMHuUnVw6bPb723BFEYPWePO5KGg==</jahia-module-signature>
     </properties>
 
     <dependencies>
