@@ -29,9 +29,10 @@
 
 <form style="margin: 0;" action="${flowExecutionUrl}" method="post" onsubmit="workInProgress('${i18nWaiting}')">
     <input type="hidden" name="providerClass" value="${providerClass}"/>
-    <input type="hidden" name="createJSP" value="${createJSP}"/>
 
-    <jsp:include page="${createJSP}"/>
+    <c:if test="${not empty createJSP}">
+        <jsp:include page="${createJSP}"/>
+    </c:if>
 
     <div>
         <button class="btn btn-primary" type="submit" name="_eventId_create">
