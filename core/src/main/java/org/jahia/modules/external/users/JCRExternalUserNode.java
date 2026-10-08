@@ -43,6 +43,7 @@
  */
 package org.jahia.modules.external.users;
 
+import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.external.ExternalContentStoreProvider;
 import org.jahia.modules.external.ExternalNodeImpl;
 import org.jahia.modules.external.users.impl.UserDataSource;
@@ -93,6 +94,9 @@ public class JCRExternalUserNode extends JCRUserNode {
 
     @Override
     public boolean verifyPassword(String userPassword) {
+        if (StringUtils.isEmpty(userPassword)) {
+            return false;
+        }
         UserDataSource dataSource = (UserDataSource) ((ExternalContentStoreProvider) getProvider()).getDataSource();
         return dataSource.getUserGroupProvider().verifyPassword(getName(), userPassword);
     }
